@@ -1,29 +1,36 @@
 # Scope and remaining work
 
-Updated 2026-11-07. The final source completed the local Switch scenario after the review fixes; see [the live report](../qa/LIVE_SWITCH_REPORT.md) and [89-test result](../qa/root-final-unit.json).
+Updated 2026-11-07 evening, after the review fixes. Live check: [qa/LIVE_SWITCH_REPORT.md](../qa/LIVE_SWITCH_REPORT.md). Tests: [qa/TEST_REPORT.md](../qa/TEST_REPORT.md).
 
 ## Current scope
 
-- One room, one duty and one date: November 9, 2026, Asia/Seoul. Hours use 30-minute boundaries. Overnight and multi-day shifts are refused.
-- Four fictional accounts were driven by one operator. The final trace uses native Mattermost sessions through real self-hosted Switch 0.31.0. Separate status/proposal checks were typed in the browser. No working support team participated.
-- The companion board opens on the host Mac only. It has a localhost Host check and per-process token for writes; it has no remote staff login or membership checks. OCR draft image access is local and uses a random draft ID.
-- CSV/ICS files are local snapshots. They do not sync a calendar or upload themselves into the chat. The ICS includes only existing/confirmed segments, not uncovered hours.
-- A roster can be imported before coordination starts. Staff identities and roles cannot be changed during this one-day session.
+- One room, one duty and one date: Monday, November 9, 2026, Asia/Seoul. The four people (Seoyeon, Minsu, Jian, Taeo) are built into `shiftpatch/roster.py`. Another team or date needs a code change there. Hours use 30-minute boundaries; overnight and multi-day shifts are refused.
+- Four fictional accounts were driven by one operator. Live messages were posted through Mattermost's API as each synthetic account and read in the native channel. No working support team participated.
+- The board opens on the host Mac only. It has a localhost Host check and a per-process token for writes; no remote staff login or membership checks.
+- CSV/ICS files are local snapshots. They do not sync a calendar or upload themselves into the chat. ICS event UIDs include the snapshot version, so importing two snapshots into one calendar can leave the older events in place; this was not tried with a calendar client.
+- A roster can be imported, and account links changed, only before coordination starts.
 
-## Connection and setup
+## Delivery and connection
 
-- Reconnect, gap, eviction and forced handler-failure recovery are tested against the contract double, not deliberately triggered on the real server. A message that fails five times halts the bridge before its sequence is acknowledged. Restart ShiftPatch to replay it; there is no recovery button.
-- The verified setup used a private-room addressing rule. The `manage.py register-agent` and `set-addressing` wrappers have not themselves run against the server; root registered the test agent separately. The import wrappers call the same roster/link functions used in the verified setup.
-- The manager currently obtains opaque participant IDs from Switch probe events. Self-linking is not implemented.
-- Mattermost must be opened at its configured SiteURL, `http://localhost:18065` for this setup. Its WebSocket origin check rejects the 127.0.0.1 variant. The ShiftPatch board uses 127.0.0.1:8766.
+- Replies are delivered at least once, not exactly once. If ShiftPatch stops after Switch accepted a reply but before marking it sent, that reply is posted again once its 60-second lease runs out. The Switch message endpoint has no idempotency key we could use.
+- A reply that fails six times is parked and shown on the board with a send-again button; later replies in the room continue, so a resent reply can arrive after newer ones (it is marked "Delayed reply").
+- Malformed frames, a non-integer sequence or cursor, and 15 silent seconds trigger a reconnect from the processed cursor. These, reconnect, gap, eviction and handler-failure halt are tested against fake sockets and the contract double only. None was triggered on a live server.
+- A message that fails five times halts the bridge before its sequence is acknowledged. Restart ShiftPatch to replay it; there is no button for this.
+- An export interrupted by a stopped process gets a closing "did not finish, send export again" reply at the next start. The export itself is not retried automatically.
+
+## Setup
+
+- `manage.py register-agent`, `set-room` and `import-links` ran against local Switch 0.31.0 in the 2026-11-07 check. `manage.py set-addressing anyone` got HTTP 403 there; the room's addressing rule was set in the Gateway instead. The wrapper now exits with an error and says so.
+- The manager obtains opaque participant IDs from one probe message per person. Self-linking is not implemented.
+- Mattermost must be opened at its configured SiteURL (`http://localhost:18065` in the check); its WebSocket origin check rejects the 127.0.0.1 form.
 - Managed/cloud Switch and other chat platforms were not tested. OCR was tested on simple synthetic table images on macOS, not camera photos with perspective or handwriting.
 
 ## AI and messages
 
-Free-form text is interpreted by an already authenticated Claude CLI. The sender must confirm before the suggested action applies. A small synthetic quality check matched 7/7 cases, and the final Switch trace includes a real model call; these are not estimates of accuracy in a working team.
+Free-form text is interpreted by an already signed-in Claude CLI. The sender must confirm before the suggested action applies. A small synthetic check matched 7/7 cases and the live check includes one real model call; neither is an accuracy estimate for a working team.
 
-The application stores structured actions and a body hash, not original messages. Native chat history remains in Switch/Mattermost under their normal storage behaviour. The local demo transcript is in memory and clears on restart. Equal/older timestamps from one person are refused conservatively and require a new message.
+The application stores structured actions, a body hash and its own replies, not people's messages. Chat history remains in Switch/Mattermost under their normal storage. The local demo transcript is in memory and clears on restart.
 
 ## Before submission
 
-The source and 77-second local video are prepared. Public GitHub and public/unlisted YouTube or Loom URLs are still absent. No push, public deployment or upload has occurred. Final entry must be made manually by the entrant under the official rules. MIT is the prepared source license and should be confirmed before publication.
+The source, the review package and a revised English demo video are prepared locally. There is no public GitHub repository, no YouTube or Loom URL and no submission. The entrant enters the form manually under the official rules. MIT is the prepared license and should be confirmed before publication.

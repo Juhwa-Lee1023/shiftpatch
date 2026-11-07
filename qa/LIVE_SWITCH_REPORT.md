@@ -1,6 +1,42 @@
 # Live Switch run — local self-hosted, synthetic team
 
-## Final corrected source: verified 2026-11-07 17:15–17:17 KST
+## Source after the review fixes: checked 2026-11-07, about 18:35–18:39 KST
+
+This run used the source after the 2026-11-07 review fixes (worktree commit `c65b2ec` plus the `manage.py set-addressing` exit-code change, which the server process does not load). It ran next to the earlier demo without touching it: a new agent `shiftpatch2`, a new private room, a new data directory and ShiftPatch on 127.0.0.1:8786. The earlier instance on 8766 stayed connected with 0 reconnects.
+
+Setup, through ShiftPatch's own commands where they worked:
+
+| Step | Result |
+|---|---|
+| `manage.py register-agent --base-url http://127.0.0.1:18000 --name shiftpatch2` | exit 0, agent registered; key in the git-ignored 0600 config |
+| `manage.py set-addressing anyone` | **HTTP 403**. The Gateway addressing rule for the room was used instead |
+| `manage.py set-room` | exit 0 |
+| Identity probe, one `@shiftpatch2` message per account | first attempt: Seoyeon's probe, sent right after room creation, was not delivered; second attempt observed all four |
+| `manage.py import-links` | exit 0, 4 participants linked |
+| Roster | `fixtures/ocr/clear.png` read by Apple Vision on the review screen for this Switch room. The account list showed each person's Switch participant ID (no `local:` accounts). Links confirmed, approval ticked, imported as roster version 1 |
+
+Flow. Messages were posted through Mattermost's REST API as each synthetic account; the native channel shows them with ShiftPatch's replies (captured afterwards as Seoyeon).
+
+| # | Sender | Message (`@shiftpatch2 …`) | Version | Reply / state |
+|---|---|---|---|---|
+| 1 | minsu | `I might be unable to cover Monday, November 9, 13:00-17:00.` | 1 | question Q1 for 13:00–17:00 unavailable, "until 18:48 · read by AI"; nothing recorded |
+| 2 | minsu | `yes Q1` | 2 | "Mon 11/9 13:00–17:00 is now uncovered." |
+| 3 | jian | `available 13:60-15:00` | 2 | "That is not a clock time, so nothing was recorded." |
+| 4 | jian | `available 2026-11-09 13:00-15:00` | 3 | proposal P1 with `Jian: accept P1-a` |
+| 5 | taeo | `available 2026-11-09 15:00-17:00` | 4 | "New proposal P2: Jian 13:00–15:00, Taeo 15:00–17:00. Jian: accept P2-a · Taeo: accept P2-b. Then Seoyeon sends confirm P2." |
+| 6 | jian | `accept P2-a` | 5 | still waiting for Taeo |
+| 7 | taeo | `accept P2-b` | 6 | waiting for Seoyeon to send `confirm P2` |
+| 8 | seoyeon | `confirm P2` | 7 | confirmed, no gaps |
+| 9 | jian | `unavailable 2026-11-09 13:00-15:00` | 8 | "13:00–15:00 is uncovered again. Taeo's 15:00–17:00 stays confirmed." |
+| 10 | seoyeon | `confirm P2` | 8 | "P2 was confirmed earlier. Since then Jian's 13:00–15:00 reopened, so P2 was not confirmed again. Nothing changed." |
+| 11 | seoyeon | `export` | 8 | "Created coverage-2026-11-09-v8-….csv (version #8)"; the board lists the same file; HTTP 200 download |
+| 12 | seoyeon | `status` | 8 | coverage lines and the board link for this room |
+
+Final board: 09–13 Jian (original) · 13–15 uncovered · 15–17 Taeo (confirmed P2-b) · 17–18 Taeo (original). P2 stays "confirmed" with "confirmed earlier · 13:00–15:00 reopened" next to it. Every reply reached outbox state `sent`; no failed deliveries. Bridge state at the end: connected, 0 reconnects, 0 bad frames, 0 read timeouts.
+
+Not covered: failures on a live server (all fault paths remain fake-socket or contract-double tests), a second run for repeatability, managed/cloud Switch, other chat platforms, real staff. Sanitized trace and captures: `development/opus-remediation-20261107T090608Z/live-run/` in the working project; no ids, keys or passwords are in this repository.
+
+## Final source before the review fixes: verified 2026-11-07 17:15–17:17 KST
 
 The final source was run again after the review fixes. A new QA database preserved the earlier runs. Four synthetic Mattermost sessions posted through the real local Switch stack. The browser showed the replies without refresh at the configured Mattermost SiteURL, `http://localhost:18065`.
 

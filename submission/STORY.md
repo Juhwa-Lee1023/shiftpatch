@@ -11,32 +11,32 @@ Best Business Workflow
 ## Project description
 A teammate drops a shift. One colleague can take the first two hours, another can cover the rest. The answers are in chat, but someone still has to check who actually agreed and update the roster.
 
-ShiftPatch handles that handoff inside a Switch room. It reads each person's availability, proposes a split and waits for each person to accept their own hours. The manager then confirms the plan. If one person later becomes unavailable, only those hours reopen; the rest of the confirmed plan stays in place.
+ShiftPatch handles that handoff inside a Switch room. Minsu can't cover Monday, November 9, 13:00–17:00. Jian offers 13:00–15:00 and Taeo offers 15:00–17:00. ShiftPatch replies with a proposal that names each part (`Jian: accept P2-a · Taeo: accept P2-b`). Each person accepts their own part and Seoyeon, the manager, confirms. When Jian later drops out, only 13:00–15:00 reopens; Taeo's confirmed hours stay, and the board and CSV export show the same version.
 
-The demo follows a small customer-support team covering Monday, November 9. Jian takes 13:00–15:00 and Taeo takes 15:00–17:00. When Jian drops out, the board reopens 13:00–15:00 and keeps Taeo's shift. A CSV export records the same version of the board.
+Claude reads a free-form message such as "I might be unable to cover Monday 13–17" and suggests one action. Nothing changes until the sender replies `yes`. Exact commands like `accept P2-a` skip the AI. Code checks every step: only the owner of a part can accept it, only the manager can confirm, and a confirmed plan that later changed cannot be confirmed again.
 
-To get started, the manager imports a CSV or a simple roster image, checks the extracted cells and links the names to chat accounts. Free-form replies go through an AI reader and back to the sender for confirmation. Availability, acceptance and manager confirmation remain separate steps.
+This prototype has one fixed four-person team and one day. The manager loads that day's roster from a CSV or a simple roster image (read locally with Apple Vision) and confirms which chat account belongs to each person.
 
 ## Public GitHub repository
 PENDING — no publication authorized or performed.
 
 ## Demo video (under 3 minutes, YouTube or Loom; public/unlisted)
-PENDING — no video uploaded.
+PENDING — a revised local video is prepared; nothing is uploaded.
 
 ## Optional live demo
 No hosted demo. The application and Switch stack run on this Mac only.
 
 ## How did you use Switch?
-ShiftPatch is a custom agent connected to a self-hosted Switch 0.31.0 server over the documented WebSocket agent protocol. Four fictional teammates use a private Mattermost channel connected through Switch. The agent receives Switch message events, uses the sender identity supplied by Switch and sends its replies back into that channel.
+ShiftPatch is a custom Python agent connected to a self-hosted Switch 0.31.0 server over the documented WebSocket agent protocol. Four fictional teammates share a private Mattermost channel connected through Switch. The agent receives Switch message events, takes the actor from the sender identity Switch supplies, and posts its replies back into the channel.
 
-Each state change is tied to a room, message and linked staff account. A person can accept only their own part; the manager alone can confirm the complete plan. Redelivered messages are ignored, and an old proposal cannot overwrite a later change. The browser board and exports read the resulting roster state.
+Each state change is tied to a room, a message and a linked staff account. Redelivered messages are ignored, replies go out in order, and a reply that cannot be delivered is shown on the board with a button to send it again without repeating the change.
 
-We ran the full handoff through that local Switch stack, including the partial dropout after confirmation. We also sent a free-form sentence through the real AI reader and confirmed the interpreted hours from the same chat account. The four roles were operated by one developer with synthetic shifts; this was an integration test, not a trial with a working support team.
+I ran the full handoff on the corrected source through that local stack: a new agent registered with ShiftPatch's own setup command, a new private room, and a roster read from an image and imported for that room. A hedged message went through the real AI reader and was confirmed from the same chat account; then two availability replies, two self-acceptances, the manager's confirmation, Jian's partial dropout, the refused re-confirmation and a CSV export. One developer operated the four roles with synthetic shifts. It was an integration check, not a trial with a working support team.
 
 ## What did you like about Switch, and what would you improve?
-Switch let the workflow stay in the chat room. Our agent received a stable sender identity and message ID, which made it possible to separate a person's acceptance from a manager's confirmation and ignore duplicate deliveries. WebSocket heartbeat frames also kept the connection responsive while the AI reader was working.
+Switch let the workflow stay in the chat room. The agent received a stable sender identity and message ID, which made it possible to separate a person's acceptance from a manager's confirmation and ignore duplicate deliveries. WebSocket heartbeats kept the connection alive while the AI reader was working.
 
-For a first self-hosted setup, I would add one tested example that starts the chat bridge, creates a private room, exposes the participant IDs and connects an agent. During the local setup, those steps were spread across several pages. The event stream worked in our local run; seeing one complete control frame and one complete message frame in the connection guide would have made the adapter easier to check. I would also make the current WebSocket guidance more visible wherever older SSE examples still appear.
+For a first self-hosted setup, I would add one tested example that starts the chat bridge, creates a private room, shows the participant IDs and connects an agent; those steps were spread across several pages. In my setup, changing the agent's addressing with the agent's own key returned HTTP 403, and the Gateway's room rule worked. Saying which of the two is expected would help. One complete control frame and one complete message frame in the connection guide would have made the adapter easier to check, and the WebSocket guidance could be more visible where older SSE examples still appear.
 
 ## Development and data disclosure
-The prototype, tests and documentation were developed with AI coding tools, including Claude and Codex. The optional in-product reader calls the locally signed-in Claude CLI. Roster images are read locally with Apple Vision. All people, rosters and chat messages in the demo are synthetic. No real employee data was used.
+The prototype, tests and documentation were developed with AI coding tools, Claude and Codex, directed by the entrant. The optional in-product reader calls the locally signed-in Claude CLI. Roster images are read locally with Apple Vision. All people, rosters and chat messages in the demo are synthetic. No real employee data was used.

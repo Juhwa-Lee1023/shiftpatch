@@ -2,141 +2,158 @@
 
 **Fill a sudden gap in a support shift from the team chat room.**
 
-Minsu can't cover Monday's 13:00–17:00 support shift. Colleagues reply in the room with the hours they can take. ShiftPatch turns those replies into a replacement proposal; each person accepts only their own part, and the manager confirms. If someone drops out later, only their hours reopen — everyone else's confirmed work stays. The team gets a coverage board and a CSV snapshot showing who covers each interval and where a gap remains.
+Minsu can't cover Monday 13:00–17:00. In the team's chat room, Jian offers 13:00–15:00 and Taeo offers 15:00–17:00. ShiftPatch turns those replies into a proposal with one part per person. Each person accepts their own part, and the manager confirms. If Jian later drops out, only 13:00–15:00 reopens; Taeo's confirmed hours stay. A board and a CSV snapshot show who covers each interval and where the gap is.
 
-People, shifts and messages are fictional: Seoyeon (manager), Minsu (13–17), Jian (09–13), Taeo (17–18), Monday 2026-11-09, Asia/Seoul, ordinary customer support. The Switch transport in the live run was real: a local self-hosted Switch 0.31 server delivered the messages from four synthetic Mattermost accounts. No real staff have used it.
+This is a prototype with one fixed team and one day built in: Seoyeon (manager), Jian (09–13), Minsu (13–17), Taeo (17–18), Monday 2026-11-09, Asia/Seoul, general customer support. The people and messages are fictional. The Switch connection is real: a local self-hosted Switch 0.31.0 server delivered the messages from four synthetic Mattermost accounts, all operated by one developer. No real staff have used it.
 
-![Board after Jian drops 13–15: only that interval is uncovered](docs/screenshots/live-switch-board-en.jpg)
+![Board after Jian drops 13–15: only that interval is uncovered](docs/screenshots/08b-board-gap-reopened-en.png)
 
-## What it does
+## Run it (macOS)
 
-| Step | In the room | What the program checks |
-|---|---|---|
-| Hedged message | `@ShiftPatch 내일 13~17시 못 할 것 같아요` | Not applied. The agent shows the exact action and asks `네/아니요` (Q1, 10 min). |
-| Availability | `가능 13-15`, or free text read by AI then confirmed | Recorded as *available*, never as accepting. |
-| Proposal | posted automatically | candidate = availability ∩ gap − own shifts; never widened |
-| Self acceptance | `수락 P2-a` | only the person the part belongs to; proxies refused |
-| Revoke before confirm | `수락 취소 P2-a` | that acceptance only |
-| Manager confirm | `확정 P2` | one transaction: manager role, every acceptance, unchanged facts, still inside the gap, no overlap |
-| Inability after confirm | `불가 2026-11-09 13:00-15:00` | only that interval reopens; history kept; old plan can't be re-confirmed |
-| Board / export | `표`, `내보내기` | CSV/ICS from one frozen snapshot version |
+Requirements: Python 3.11+ (tested with 3.14.5; standard library only). For roster images: macOS with Xcode command-line tools (`swift`). Optional: a signed-in Claude Code CLI for reading free-form messages; Node 18+ and Google Chrome for the browser tests.
 
-English works too (`available 13-15`, `accept P2-a`, `confirm P2`, `unavailable …`, `status`, `export`).
-
-## Verification status
-
-| Area | Status (2026-11-07 KST) | Evidence |
-|---|---|---|
-| Live Switch, local self-hosted v0.31.0, Mattermost | **Verified on a synthetic team.** Four accounts ran the seven steps above: inability, two availabilities, two self-acceptances, the manager's confirmation, then a partial inability. Only 13–15 reopened. This was run independently by the root operator, not by the build agent. | [qa/LIVE_SWITCH_REPORT.md](qa/LIVE_SWITCH_REPORT.md) |
-| Domain rules, pipeline, roster/OCR (real Apple Vision), export, HTTP API | 89 automated tests pass | [qa/TEST_REPORT.md](qa/TEST_REPORT.md) |
-| Switch reconnect, `gap`, eviction, bad key, handler failure halt | contract double only, not live | [tests/test_switch_contract.py](tests/test_switch_contract.py) |
-| Browser flow in the local demo room | 10/10 E2E steps, run before the latest history-wording fix | [qa/TEST_REPORT.md](qa/TEST_REPORT.md) |
-| `manage.py register-agent`, `set-addressing` | never run against a server; manual instructions only | — |
-| Managed/cloud Switch, Slack/Teams/Discord/Telegram | not tested | — |
-| Demo video | 77-second captioned local screencast prepared; no public URL yet | prepared separately from the source |
-| Real staff, public deployment, public repo | not done | — |
-
-## Install and run (macOS)
-
-Requirements: Python 3.11+ (tested with 3.14.5; standard library only), macOS with Xcode command-line tools for the OCR helper (`swift`). Optional: the Claude Code CLI already logged in (for AI reading of free text), Node 18+ and Google Chrome (for browser tests).
+From the folder that contains `run.py` (the repository root, or the unpacked source ZIP):
 
 ```bash
-cd app
-python3 run.py --port 8765            # http://127.0.0.1:8765/  (binds 127.0.0.1 only)
+python3 run.py --port 8765            # open http://127.0.0.1:8765/ (binds 127.0.0.1 only)
 ```
 
-First run shows a landing page. Start with **합성 예시 CSV로 시작** (synthetic CSV) or upload a roster image (`fixtures/ocr/clear.png`). Review the table, confirm each name→account link, tick the approval box, import. Then open **시연 방** (demo room) and follow the numbered script on the right; it fills the input, you press send.
+The first screen offers **Start with the synthetic CSV** or an image upload (`fixtures/ocr/clear.png`). Review the table, confirm each name → account link, tick the approval box and import. Then open **Demo room** and follow the numbered script on the right; it fills the input and you press Send. The demo room is local: one person plays four synthetic accounts on one Mac, on a synthetic clock set to Sunday evening, 11/8.
 
-Switch the UI language with the 한국어 / English toggle. Data lives in `app/data/` (SQLite + `exports/`). `SHIFTPATCH_AI=off` disables AI reading.
+Data goes to `./data/` (SQLite and `exports/`), or to `--data <dir>`. `SHIFTPATCH_AI=off` turns off the AI reader. The UI has a 한국어 / English toggle.
 
-The final corrected source was independently checked again through the local Switch stack and the native Mattermost browser UI. See [final live evidence](qa/final-live-evidence.json). For this local stack, open Mattermost at `http://localhost:18065` (its configured SiteURL); using `127.0.0.1` for that chat page fails its WebSocket origin check. The ShiftPatch board itself uses `127.0.0.1:8766`.
+## Connect it to a local Switch
+
+This is the path used for the corrected-source live check on 2026-11-07 (agent `shiftpatch2`, a new private room; [report](qa/LIVE_SWITCH_REPORT.md)). No key or password is in this repository.
+
+1. Run a self-hosted Switch with its Mattermost bridge (Switch self-host docs; the check used tag `switch-v0.31.0`, every host port bound to 127.0.0.1). Create four Mattermost users for the synthetic team.
+2. Register the agent with a registration key from the Gateway (**API Keys**). The key is read from the environment and not stored:
+   ```bash
+   export SHIFTPATCH_REGISTRATION_KEY=…
+   python3 manage.py register-agent --base-url http://127.0.0.1:18000 --name shiftpatch2
+   ```
+   This writes `config/switch.local.json` (mode 0600, git-ignored).
+3. In the Gateway, create a private room with the agent and the four users, and give the agent an addressing rule for that room (users `*`). `python3 manage.py set-addressing anyone` exists, but on Switch 0.31.0 the server answered HTTP 403 to it; the Gateway rule is what worked.
+4. `python3 manage.py set-room '<room id>'`
+5. Link each Switch participant to a staff ID. Participant IDs are opaque. Have each person send one `@shiftpatch2` message and read `payload.sender` from the delivered frame, then write `config/links.json` like `config/links.example.json`:
+   ```bash
+   python3 manage.py import-links config/links.json
+   ```
+6. Start ShiftPatch and import the day's roster for that room in the browser, from a CSV or a roster image:
+   ```bash
+   python3 run.py --port 8765
+   # http://127.0.0.1:8765/?room=<url-encoded room id>#/import
+   ```
+   The review screen lists the participant ID that will act as each person in this room. A person without a linked account blocks the import. `python3 manage.py import-roster fixtures/roster_sample.csv config/mapping.example.json --approve` does the same from the command line.
+7. In the room, write `@shiftpatch2 …`. Use dates like `unavailable 2026-11-09 13:00-15:00`: a Switch room runs on the real clock, so "tomorrow" means the day after today. `status` replies with a link to this room's board on the host Mac.
+
+Open Mattermost at its configured SiteURL (`http://localhost:18065` in the check). The `127.0.0.1` form failed Mattermost's WebSocket origin check.
+
+## What happens in the room
+
+| Step | Example | What the program checks |
+|---|---|---|
+| Hedged message | `I might be unable to cover Monday, November 9, 13:00-17:00.` | Nothing is recorded. The agent states the exact action and asks `yes`/`no` (Q1, open for 10 minutes from when ShiftPatch received the message). |
+| Availability | `available 2026-11-09 13:00-15:00`, or free text read by AI and then confirmed | Recorded as *available*, never as accepting. Clock times are checked: `13:60` or `24:30` is refused and nothing changes. |
+| Proposal | listed in the same reply | Hours offered inside the gap, minus the person's own shifts. The reply names each part, e.g. `Jian: accept P2-a · Taeo: accept P2-b. Then Seoyeon sends confirm P2.` |
+| Self acceptance | `accept P2-a` | Only the person the part belongs to |
+| Withdraw | `withdraw 14:00-15:00` or `withdraw` | A range removes exactly those hours; the rest of that availability stays. Bare `withdraw` removes all of it. |
+| Manager confirm | `confirm P2` | One transaction: manager role, every acceptance, unchanged facts, still inside the gap, no overlap |
+| Inability after confirm | `unavailable 2026-11-09 13:00-15:00` | Only that interval reopens. History keeps P2 as confirmed; the board adds "confirmed earlier · 13:00–15:00 reopened". Sending `confirm P2` again is refused and the reply says why. |
+| Board / export | `status`, `export` | CSV/ICS from one snapshot version; the chat reply names the same file the board lists |
+
+Korean works too (`가능 13-15`, `수락 P2-a`, `확정 P2`, `불가 …`, `표`, `내보내기`).
+
+## Verification status (2026-11-07 KST)
+
+| Area | Status | Evidence |
+|---|---|---|
+| Corrected source on live local Switch 0.31.0 + Mattermost | One run, synthetic team, one operator. New agent and room. Roster imported through the image review screen (Apple Vision, synthetic fixture). Flow: AI-read hedged message → `yes Q1` → bad clock time refused → two availabilities → two self-acceptances → confirm → Jian drops 13–15 → old confirm refused → export → status. Final version 8, only 13–15 uncovered. | [qa/LIVE_SWITCH_REPORT.md](qa/LIVE_SWITCH_REPORT.md) |
+| `manage.py register-agent`, `set-room`, `import-links` | Ran against that server | same |
+| `manage.py set-addressing` | Server answered HTTP 403; Gateway rule used instead | same |
+| Unit and integration tests | 125 pass (the original 89 plus 36 for the 2026-11-07 review findings) | [qa/TEST_REPORT.md](qa/TEST_REPORT.md) |
+| Reconnect, malformed frames, silent socket, gap, eviction, handler-failure halt | Contract double and fake sockets only, not triggered on a live server | `tests/test_switch_contract.py`, `tests/test_critique_regressions.py` |
+| Browser flow in the local demo room, delivery retry, Switch-room review screen | 13/13 E2E steps | [qa/e2e-result.json](qa/e2e-result.json) |
+| Managed/cloud Switch; Slack, Teams, Discord, Telegram | Not tested | — |
+| Real staff, public deployment, public repository | Not done | — |
 
 ## Tests
 
 ```bash
-cd app
-python3 -m unittest discover -s tests          # 89 tests: domain, pipeline, roster/OCR (real Vision), export, HTTP, Switch contract double
-npm install && node e2e/run.mjs                # browser E2E with system Chrome via Playwright (AI off, deterministic)
-node e2e/ai_trace.mjs                          # browser run of the free-text path with the real AI reader
-python3 qa/ai_live_check.py                    # 7 synthetic sentences through the live CLI reader
+python3 -m unittest discover -s tests          # 125 tests
+npm install && node e2e/run.mjs                # browser E2E, system Chrome via Playwright, AI off
+node e2e/ai_trace.mjs                          # free-text path with the real AI reader
+python3 qa/ai_live_check.py                    # 7 synthetic sentences through the CLI reader
 ```
 
-Latest results with commands, durations and exit codes: [qa/TEST_REPORT.md](qa/TEST_REPORT.md).
+To reuse a Playwright install that already exists elsewhere, put its `node_modules` path in `e2e/playwright-dir.local`.
 
 ## Architecture
 
 ```
 trusted transport event (Switch WebSocket frame | local demo room)
-  → TrustedEnvelope {room, message_id, sender, created_ms}     ← actor comes only from here
+  → TrustedEnvelope {room, message_id, sender, created_ms, received_ms}   ← actor comes only from here
   → idempotency (processed by message id; edited body → not applied)
-  → identity link → freshness window → execution context (room/message/actor, 120 s, one live per room)
+  → identity link → freshness window → execution context (room/message/actor, one live per room)
   → exact grammar  |  AI suggestion (CLI, no tools, JSON schema)  |  rule reader for hedged + explicit range
   → BEGIN IMMEDIATE: verify context → per-actor watermark → domain write (savepoint)
                      → history + processed + reply outbox  → COMMIT (or roll back everything)
-  → outbox dispatcher (retries replies only)     → snapshot exporter (CSV/ICS, temp+fsync+rename)
+  → outbox dispatcher (replies only, in order per room)   → snapshot exporter (CSV/ICS, temp+fsync+rename)
 ```
 
 | Module | Role |
 |---|---|
-| `shiftpatch/engine.py` | intervals, coverage, proposals, carry-forward, accept/revoke, confirm, inability, pending confirmations, watermark |
-| `shiftpatch/agent.py` | the pipeline above; replies (KO/EN) |
-| `shiftpatch/grammar.py` | full-match command grammar; tentative/quoted/forwarded/ambiguous-hour detection |
+| `shiftpatch/engine.py` | intervals, coverage, proposals, carry-forward, accept/revoke, confirm, inability, withdrawals, confirmation questions, watermark |
+| `shiftpatch/agent.py` | the pipeline above; replies (KO/EN); export side effect |
+| `shiftpatch/grammar.py` | full-match command grammar; tentative/quoted/forwarded/ambiguous-hour detection; strict clock times |
 | `shiftpatch/interpret.py` | optional Claude CLI reader (suggest-only) |
 | `shiftpatch/switch_bridge.py`, `wsclient.py` | Switch agent protocol over WebSocket (stdlib RFC 6455 client) |
+| `shiftpatch/outbox.py` | reply delivery: lease claim, per-room order, backoff, failed-reply view |
 | `shiftpatch/local_demo.py` | synthetic local room with an actor picker (local kind only) |
-| `shiftpatch/roster.py`, `ocr.py`, `ocr/roster_ocr.swift` | CSV/OCR drafts, validation, manager-approved one-time import |
+| `shiftpatch/roster.py`, `ocr.py`, `ocr/roster_ocr.swift` | CSV/OCR drafts, validation, room accounts, manager-approved one-time import, account links |
 | `shiftpatch/exporter.py` | snapshot CSV / confirmed-only ICS |
 | `shiftpatch/server.py`, `web/` | local web UI and JSON API |
 
-Key rules: half-open intervals on 30-minute boundaries, one day, no overnight. An acceptance attaches to a part's immutable component hash (room, date, duty, person, interval, availability id+revision, account-link revision, roster version), so accepting never invalidates the proposal. A newer proposal reuses an acceptance only when that hash is identical (shown as "carried from P1-a"); anything wider or changed needs a fresh acceptance. Revoking withdraws every live acceptance of that component so it can't be carried later. A `네/yes` binds to one open confirmation of the same person, room, exact action and dependency revision, expiring after 10 minutes; with two open, a number is required (`네 Q3`). An availability confirmation can never become a shift acceptance. Messages older or equal to the person's last applied message are not applied (ask to resend); timestamps more than 2 min in the future or 15 min in the past are refused. Confirm and inability from different people are serialized by commit order: either order ends with the inability reflected.
+Rules worth knowing:
 
-## Switch
+- Half-open intervals on 30-minute boundaries, one day, no overnight.
+- An acceptance attaches to a part's component hash: room, date, duty, person, interval, availability id and revision, account-link revision, roster version. A newer proposal reuses an acceptance only when that hash is identical (shown as "carried from P1-a").
+- A `yes` answers one open question of the same person, asked to the same chat account, for the exact action and dependency revision. The question stays open 10 minutes from when ShiftPatch received the message. With two open, a number is required (`yes Q3`).
+- Which message came first is decided by the platform timestamp: a message older than or equal to the person's last applied one is not applied. Messages more than 2 minutes in the future or 15 minutes in the past are refused.
+- Account links can change only before coordination starts. A relink closes that person's open questions and raises the link revision above every earlier one.
 
-ShiftPatch sits in a Switch room as a custom agent. The adapter follows [the official agent protocol](https://docs.switchagents.ai/), checked on 2026-11-07. It uses WebSocket; the older SSE transport is deprecated:
+## Switch protocol
+
+The adapter follows [the official agent protocol](https://docs.switchagents.ai/), checked on 2026-11-07, over WebSocket (SSE is deprecated):
 
 - open `GET /agents/{id}/connection/ws?connection_id=<persisted uuid>&rooms=<room>&filter=addressed&start_from=<cursor|head>&expected_generation=<g>` with `Authorization: Bearer <agent API key>`
-- read `connection_state` (rooms, cursor, generation); answer every `ping` immediately with `{"type":"pong","cursor":n}` where *n* is the highest sequence **processed** (cursor advances only after the domain commit)
-- domain frames `{"event":"message","data":{room_id,payload:{addressed,sender,sender_name,message_id,body,timestamp}},"id":seq}`; act only when `payload.addressed` is true, the room matches, and `sender` is linked to a staff member
+- read `connection_state` (rooms, cursor, generation); answer every `ping` with `{"type":"pong","cursor":n}`, where *n* is the highest sequence **processed** (the cursor moves only after the domain commit)
+- domain frames `{"event":"message","data":{room_id,payload:{addressed,sender,sender_name,message_id,body,timestamp}},"id":seq}`; act only when `payload.addressed` is true, the room matches and `sender` is linked to a staff member
+- a frame that is not JSON, or carries a non-integer sequence or cursor, drops the connection; it reopens from the processed cursor. Hearing nothing for 15 s (Switch pings every 2 s) also reconnects
 - `gap` → take `resumed_at`, note it on the next reply; `evicted taken_over` and close codes 4400/4401/4403/4409 stop; `heartbeat_lapsed`/1011/1012/drops reconnect with backoff
-- replies: `POST /agents/{id}/message {room_id, content}`; registration: `POST /agents` with a registration key; addressing: `update_agent_detail`
+- replies: `POST /agents/{id}/message {room_id, content}`
 
-Safeguards: unlinked senders (including other agents) change nothing; `com.switch.auto_reply`/`com.switch.admin` markers and our own name are ignored; quoted (`>`) and forwarded text never executes; a redelivered message id is a no-op and an edited body is not applied. The web UI has **no** path to post into a Switch room as someone. If handling one message keeps failing (5 attempts), the bridge stops with state `halted` and keeps the cursor before that message. It does not consume anything later, so restarting ShiftPatch replays the failed message.
+Safeguards: unlinked senders (including other agents) change nothing; `com.switch.auto_reply`/`com.switch.admin` markers and the agent's own name are ignored; quoted (`>`) and forwarded text never executes; a redelivered message id is a no-op and an edited body is not applied. The web UI has **no** path to post into a Switch room as someone. If handling one message keeps failing (5 attempts), the bridge stops with state `halted` and keeps the cursor before that message; restarting ShiftPatch replays it.
 
-### Connect to a local Switch
-
-The live run in [qa/LIVE_SWITCH_REPORT.md](qa/LIVE_SWITCH_REPORT.md) used a self-hosted Switch v0.31.0 with Mattermost on the same Mac. Root registered the agent outside ShiftPatch, then wrote the links and roster with the same functions behind `import-links` and `import-roster`. The CLI below is the intended manual path. Steps marked *untested* have never run against a server.
-
-1. Start the local Switch server (see the Switch self-host docs) and create a room with the four people.
-2. Create a registration key in the Gateway (API Keys), then:
-   ```bash
-   export SHIFTPATCH_REGISTRATION_KEY=…            # not stored by ShiftPatch
-   python3 manage.py register-agent --base-url http://localhost:8000 --name shiftpatch   # untested
-   python3 manage.py set-addressing anyone                                               # untested
-   python3 manage.py set-room '<room id>'
-   python3 manage.py import-links config/links.json      # opaque payload.sender ids → staff ids (see config/links.example.json)
-   python3 manage.py import-roster fixtures/roster_sample.csv config/mapping.example.json --approve
-   python3 run.py                                         # bridge starts when config/switch.local.json is complete
-   ```
-   Participant ids are opaque. One way to learn them, the way root did: have each person send one `@shiftpatch` message and read `payload.sender` from the delivered frame.
-3. Talk to `@shiftpatch` in the room. Write dates as ISO (`불가 2026-11-09 13:00-17:00`): a Switch room runs on the real clock, so `내일` means tomorrow from the actual date. The `표`/`status` reply links to `http://127.0.0.1:<port>/?room=<url-encoded room id>#/board`, which opens that room's board on the host Mac.
+Replies go out in commit order per room. A failed send is retried after 1, 2, 4, 8 and 16 s; after six failures the reply is shown on the board under "Replies that did not reach the chat room" with a **Send replies again** button, and later replies continue. Sending again moves only the reply; the record already changed. Delivery is at least once: if ShiftPatch stops after Switch accepted a reply but before marking it sent, that reply is posted again after restart.
 
 ## AI use
 
-- **In the product:** optional. Free-form messages that aren't exact commands may be read by the locally logged-in Claude Code CLI (`claude -p --json-schema … --tools "" --no-session-persistence`, model alias `sonnet`, 45 s timeout, at most 2 at once, isolated empty working directory, prompt via stdin, no shell). The model only returns one suggested action for the sender; the server validates it and asks the sender to confirm. Replies say "AI가 읽은 내용 / read by AI" or "규칙으로 읽은 내용 / read by rule". When the CLI is unavailable the app says so and exact commands keep working. With AI reading on, that sentence goes to the model provider under the CLI login's terms.
-- **In development:** this code, tests and docs were written by an AI coding agent (Claude) directed by the entrant; planning drafts were produced in earlier AI-assisted sessions. The entrant is responsible for reviewing and understanding the submission.
+- **In the product:** optional. Messages that aren't exact commands may be read by the locally signed-in Claude Code CLI (`claude -p --json-schema … --tools "" --no-session-persistence`, model alias `sonnet`, 45 s timeout, at most 2 at once, empty working directory, prompt via stdin). The model returns one suggested action for the sender. The server checks it and asks the sender to confirm; nothing changes before `yes`. Replies say "read by AI" or "read by rule". Exact commands such as `accept P2-a` never go to the model. With AI reading on, that sentence goes to the model provider under the CLI login's terms.
+- **In development:** the code, tests and documentation were written with AI coding tools (Claude and Codex) directed by the entrant, who is responsible for reviewing the submission.
 
 ## Data handling
 
-Message bodies are not written to the app's disk: the DB keeps structured actions, message ids and a body hash (for edit detection). The local demo transcript lives in memory only. No reason is asked for. Logs carry method and path only. Exports neutralise formula-like cells. The board binds to 127.0.0.1, checks the `Host` header, and every write needs a per-process token and same-origin; there is no remote access or membership check yet.
+Message bodies are not written to the app's disk: the database keeps structured actions, message ids, a body hash (for edit detection) and ShiftPatch's own replies. The local demo transcript lives in memory only. No reason is asked for. Logs carry method and path only. Exports neutralise formula-like cells. The board binds to 127.0.0.1, checks the `Host` header, and every write needs a per-process token and same origin; there is no remote access or membership check.
 
 ## OCR provenance
 
-`ocr/roster_ocr.swift` is adapted from the earlier isolated experiment (`../experiments/roster-ocr/`) and uses Apple Vision `VNRecognizeTextRequest` locally. Fixtures `clear/small/ambiguous.png` are copied from that experiment; `unknown_collision.png` and `unsupported.png` are generated by `ocr/make_fixtures.swift`. Scope: one date, one duty, five fixed columns. Photos with perspective, handwriting and merged cells are not verified. OCR never sets roles or acceptance; the manager must review, confirm each account link and approve, and import is refused once coordination has started.
+`ocr/roster_ocr.swift` is adapted from an earlier isolated experiment and uses Apple Vision `VNRecognizeTextRequest` locally. Fixtures `clear/small/ambiguous.png` come from that experiment; `unknown_collision.png` and `unsupported.png` are generated by `ocr/make_fixtures.swift`. Scope: one date, one duty, five fixed columns. Photos with perspective, handwriting and merged cells are not verified. OCR never sets roles, accounts or acceptance; the manager reviews, confirms each name link and approves, and import is refused once coordination has started.
 
-## Screenshots (real captures from `node e2e/run.mjs` / `e2e/ai_trace.mjs`)
+## Screenshots
 
-`docs/screenshots/`: `01-landing-ko.png`, `01b-landing-en.png`, `02-ocr-review-ambiguous.png`, `03-ocr-review-clear.png`, `04-board-initial.png`, `05-room-after-confirm.png`, `06-board-confirmed.png`, `07-room-after-drop.png`, `08-board-gap-reopened.png`, `08b-board-gap-reopened-en.png`, `09-board-mobile.png`, `10-connect-blocked.png` (an instance without Switch config, captured before the live run), `11-room-ai-path.png`. The screenshots come from the local demo room, not the Switch room.
+`docs/screenshots/` holds captures from `node e2e/run.mjs` (local demo room, plus a synthetic Switch-room record with no server behind it for the review screen): landing, OCR review, board, room, reopened board (KO/EN), mobile, connection page, `12-board-delivery-failed.png`, `13-switch-review-unlinked.png`. `live-switch-board-en.jpg` is from the earlier live run on the pre-fix source.
 
 ## License and provenance
 
-MIT (see `LICENSE`; the entrant should confirm before publishing). Python standard library only at runtime; Playwright (Apache-2.0) is a dev dependency for browser tests. Switch protocol details come from docs.switchagents.ai (copies in [the official protocol](https://docs.switchagents.ai/) for reference). No third-party code is vendored.
+MIT (see `LICENSE`; the entrant should confirm before publishing). Python standard library only at runtime; Playwright (Apache-2.0) is a dev dependency for browser tests. Switch protocol details come from docs.switchagents.ai. No third-party code is vendored.
