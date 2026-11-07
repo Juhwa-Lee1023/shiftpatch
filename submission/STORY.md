@@ -18,10 +18,12 @@ Claude reads a free-form message such as "I can do two hours after lunch" and su
 This prototype has one fixed four-person team and one day. The manager loads that day's roster from a CSV or a simple roster image (read locally with Apple Vision) and confirms which chat account belongs to each person.
 
 ## Public GitHub repository
-PENDING — no publication authorized or performed.
+https://github.com/Juhwa-Lee1023/shiftpatch
 
 ## Demo video (under 3 minutes, YouTube or Loom; public/unlisted)
-PENDING — a 122-second English video cut from a recorded live run of the final code is prepared locally; nothing is uploaded.
+https://youtu.be/pUJcnPJt_sg
+
+122.16 seconds. Recorded from live run D at 9325ac3 with AI reading off. The final code was also checked separately in a full live run with AI reading on.
 
 ## Optional live demo
 No hosted demo. The application and Switch stack run on this Mac only.

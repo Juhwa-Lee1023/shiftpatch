@@ -2,6 +2,8 @@
 
 **Fill a sudden gap in a support shift from the team chat room.**
 
+[Watch the 2-minute demo](https://youtu.be/pUJcnPJt_sg) · [Submission answers](submission/STORY.md)
+
 Minsu can't cover Monday 13:00–17:00. In the team's chat room, Jian offers 13:00–15:00 and Taeo offers 15:00–17:00. ShiftPatch turns those replies into a proposal with one part per person. Each person accepts their own part, and the manager confirms. If Jian later drops out, only 13:00–15:00 reopens; Taeo's confirmed hours stay. A board and a CSV snapshot show who covers each interval and where the gap is.
 
 This is a prototype with one fixed team and one day built in: Seoyeon (manager), Jian (09–13), Minsu (13–17), Taeo (17–18), Monday 2026-11-09, Asia/Seoul, general customer support. The people and messages are fictional. The Switch connection is real: a local self-hosted Switch 0.31.0 server delivered the messages from four synthetic Mattermost accounts, all operated by one developer. No real staff have used it.
@@ -93,7 +95,8 @@ The code that was tested is commit `3e6c861`. The commits after it change docume
 | Reconnect, malformed frames, silent socket, gap, eviction, handler-failure halt | Contract double and fake sockets only, not triggered on a live server | `tests/test_switch_contract.py`, `tests/test_critique_regressions.py` |
 | ICS in a calendar app | Not tested. The file content was checked (next-day 00:00 for a 24:00 end). | `tests/test_final_six.py` |
 | Managed/cloud Switch; Slack, Teams, Discord, Telegram | Not tested | — |
-| Real staff, public deployment, public repository | Not done | — |
+| Real staff and public app deployment | Not done | — |
+| GitHub | Published on 2026-11-08 KST; code, setup README and MIT license open without sign-in | [GitHub](https://github.com/Juhwa-Lee1023/shiftpatch) |
 
 ## Tests
 
