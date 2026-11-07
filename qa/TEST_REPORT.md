@@ -1,53 +1,49 @@
 # Test report — 2026-11-07 KST
 
-Machine: macOS (Darwin 27), Python 3.14.5, Node 24.19, Google Chrome 157 (system install, driven by Playwright 1.56.1 `channel: "chrome"`), Apple Vision via `swift` interpreter mode.
+Machine: macOS (Darwin 27), Python 3.14.5, Node 24.19, Google Chrome via Playwright 1.56.1 `channel: "chrome"`, Apple Vision via `swift`.
 
-| Command (run from `app/`) | Exit | Duration | Result |
+## After the review fixes (2026-11-07, about 18:30–18:50 KST)
+
+Run from the repository root. Receipts with command, start time, duration, exit code and git HEAD are in the remediation folder's `deliverables/evidence/`.
+
+| Command | HEAD | Exit | Duration | Result |
+|---|---|---|---|---|
+| `python3 -m unittest discover -s tests -v` | `f306c1c` (clean) | 0 | 33.9 s | **125 tests OK**: the 89 earlier tests and 36 new ones |
+| `node e2e/run.mjs` | `f306c1c` (clean) | 0 | 11.7 s | **13/13 steps**, 0 console errors (`qa/e2e-result.json`) |
+| `node e2e/ai_trace.mjs` | `f306c1c` | 0 | 16.4 s | **5/5 replies** matched, real Claude CLI reader (`qa/e2e-ai-result.json`) |
+| critique reproductions re-run (`tools/rerun_root_reproductions.py`) | code of `f306c1c` | 0 | 1.2 s | all 10 cases now come out the corrected way |
+| live local Switch check | code of `c65b2ec` | — | — | see [LIVE_SWITCH_REPORT.md](LIVE_SWITCH_REPORT.md) |
+
+Single runs, not repeated for flakiness. The AI checks are a tiny synthetic sample, not a quality measurement.
+
+Four earlier tests were edited. Three changed wording assertions because the replies changed on purpose: the first inability now says "is now uncovered" / "이 비었습니다" instead of "again" (`test_l05`, the contract-double reply test, the app-wiring test), and `test_l05` also expects the all-accepted reply to name the manager. `test_x8` now advances a clock between dispatcher passes, because a failed reply is no longer retried in the same instant. `tests/fake_switch.py` gained a raw-frame push and a silent mode for the new bridge tests.
+
+### New tests (`tests/test_critique_regressions.py`, 36)
+
+| Finding | What is checked |
+|---|---|
+| C01 clock times | `13:60`, `13:90`, end `14:75`, `15:60`, `24:01`, `24:30`, `25:00`, English `13:60` leave version, availability, proposal and history unchanged; `13:30` and end `24:00` still work |
+| C02 ranged withdrawal | leading, middle, trailing pieces kept; the new proposal never reaches the withdrawn hour; disjoint range changes nothing; bare withdraw removes all; an earlier inability still cuts the remainder; reply lists what is left; the same rule through an AI-read message confirmed with `yes` |
+| K_S1 question lifetime | 11- and 14-minute-late messages can be confirmed at once; closed 10 min + 1 s after receipt; the "until" label uses receive time; >15 min still refused with no question; ordering still uses message time |
+| K_S4 relink | relink closes the open question, link revision rises above every earlier one, other links keep theirs, the new account's `yes Q1` / `yes` change nothing; a question stays bound to the account it was asked to even if a link row is swapped directly; an unchanged relink keeps the question |
+| C08 / K_S3 outbox | five instant passes make one attempt; row 1 retried with 1/2/4 s backoff and delivered before row 2; overlapping passes on one dispatcher and two dispatchers on one file send each row once; six failures park the row as failed, later rows continue, the failed-reply view shows it, send-again delivers it once with a "delayed reply" note and no domain change; a crash after a successful send leads to a second send after the lease (documented at-least-once) |
+| C03 export | an exporter raising OSError gets a failure reply with a retry instruction; redelivery stays a duplicate; a new `export` succeeds at the same version; folder-creation and snapshot-stage failures are reported, not raised; a restart closes an export that never finished |
+| C09 bridge | malformed JSON reconnects from the processed cursor and keeps processing; a non-integer sequence never reaches the pipeline; a silent socket is not left "connected" and reconnects; the critique's mocked-socket case; frame parsing rules |
+| KimiS5 accounts | a Switch room lists linked participant IDs and no `local:` accounts; an unlinked person blocks validation and import; the local room keeps its synthetic accounts |
+| C06 text | new-proposal reply and `proposal` list real part IDs, no `?`; reopen says "다시"; the old-plan refusal says what changed; history keeps P2 confirmed with its cut; Korean particles; English AM/PM hint keeps the sender's verb |
+
+### Browser E2E steps (`qa/e2e-result.json`)
+
+1. landing (ko + en) · 2. OCR ambiguous image flagged, approve disabled · 3. unsupported layout falls back · 4. clear image → `local:` synthetic accounts labelled as such → links confirmed → approval → board · 5. demo script shows no placeholder; hedged inability asks first, `네` says the gap is new · 6. `13:60` refused; ranged withdrawal keeps the rest · 7. AI-off notice, proposal reply names the real part IDs, proxy acceptance refused, confirm blocked until both accept, confirm · 8. downloaded CSV equals the board table · 9. Jian drops 13–15: refusal explains the change, board shows "앞서 확정 · 13:00–15:00 다시 모집" next to "확정됨", rows exact, English board with "General customer support" · 10. a reply marked undelivered (synthetic database fault) shows on the board; **Send replies again** delivers it once; version and history unchanged · 11. a Switch-room record (no server behind it) shows the linked participant IDs, marks the unlinked person and blocks import until linked; then imports; the actor picker gets 403 for that room · 12. narrow viewport and connection page · 13. no console errors.
+
+## Before the review fixes
+
+| Command | Exit | Duration | Result |
 |---|---|---|---|
-| `python3 -m unittest discover -s tests` (root review pass, 17:08 KST) | 0 | 24.1 s (unittest-reported) | **89 tests OK**, 0 skipped. Console only, not saved to a log |
-| `python3 -m unittest discover -s tests -v` (initial build) | 0 | 16.3 s | 84 tests OK. Log: `qa/unittest.log` |
-| `node e2e/run.mjs` | 0 | 7.0 s (`qa/e2e-result.json`) | **10/10 steps**, 0 console errors |
-| `node e2e/ai_trace.mjs` | 0 | see `qa/e2e-ai-result.json` | **5/5 replies** matched, real Claude CLI reader |
-| `python3 qa/ai_live_check.py` | 0 | ~27 s total, 3.2–4.8 s per call | **7/7** suggestions matched expectations (`qa/ai-live.json`) |
-
-Browser E2E and the AI checks ran in the initial build. They were not re-run after this pass's history-wording change in `web/app.js`. Runs are single runs, not repeated for flakiness. AI results are a small synthetic sample, not a quality measurement.
-
-## What the 89 tests cover
-
-| File | Count | Plan IDs / topics |
-|---|---|---|
-| `test_main_trace.py` | 2 | D01 main trace (only 13–15 reopens, Taeo kept, history kept, old plan re-confirm refused), D02 acceptance doesn't self-invalidate |
-| `test_domain.py` | 19 | D03 withdrawal before confirm + partial preservation, D04 carry with visible link, D05 widened interval needs fresh acceptance, D06 changed facts block carry, D07/D08 confirm then partial inability, D09 inability then stale confirm, D10/D16 duplicate confirm and duplicate source, D11 adjacency, D12 clip to gap, D13 no candidate, D14 partial availability, D17 proxy/other's part, staff can't confirm, D20 revoke one acceptance, revoked consent never carried, revoke-after-confirm distinct from inability, D24 unknown refs, D25 reversed/overnight/non-30-min, wrong date, D26 160 random events keep invariants (no double coverage, contiguous, gaps consistent) |
-| `test_pipeline.py` | 23 | X3 hedged → question only (rule reader), no → nothing changes, X4 two open confirmations need a number, X5 changed facts re-ask, expiry, others' confirmation refused, X2/D19 availability `yes` ≠ acceptance, X6 older/equal timestamp never overwrites, X7 future/stale timestamps, L03 ambiguous hour, C03 quote/forward/edit/bot marker, unlinked/not-addressed, D18/X1 context bound to message+actor and expiry, web actor can't reach Switch room, D15 injected failure rolls back everything then single retry, X8 reply failure + restart sends once without re-running state, L05 English, B08 message words absent from DB/WAL; fake-AI: suggestion needs self ack + context has no ids, proxy claim refused, AI can't point at another's part, clarify, L04 injection doesn't change roles; AI unavailable is stated |
-| `test_roster_ocr.py` | 16 | import blocked without approval / without confirmed links, suggestion ≠ confirmation, no overwrite after events, roles never from file, validation flags (missing year, AM/PM, unknown name, collision, duty mismatch, formula-like, wrong date), two names one account, CSV bounds; file type/size/pixel bounds, unsupported layout; **real Vision**: clear+small read exactly (15/15 fields each) but stay unimported, ambiguous flagged, unknown name + collision flagged, unsupported layout refused, private temp 0700/0600 removed on discard |
-| `test_export.py` | 6 | B01 CSV = board + version, B02 confirm committed during export cannot mix versions, B03 publish failure keeps state/no partial file then retry, chat export failure message, B04 formula neutralisation, B06 versions kept + ICS confirmed-only |
-| `test_http.py` | 8 | token in page, B05 wrong Host 403, write without token / foreign Origin 403, unknown room 404, approval must be literal `true`, blocking issues, bad mapping; demo flow + export download, path traversal/unrecorded file 404, BLOCKED status; actor must be synthetic; upload bounds |
-| `test_switch_contract.py` | 10 | **contract double, not live**: R01 persistent handler failure halts with the cursor before the failed sequence, later sequence not consumed or ponged, restart resumes from the head cursor persisted at connect and replays both once; health probe, open params (rooms, filter=addressed, start_from), pongs with processed cursor, addressed message → state + reply POST, safeguards (unaddressed, unlinked agent, auto_reply marker, own name, other room), reconnect with start_from/expected_generation/same connection_id + replay dedup, restart keeps id/cursor, gap → cursor + reply note, taken_over final, bad key 4401 stops, status hides key |
-| `test_switch_server.py` | 3 | whole App wiring (config file → bridge → pipeline → outbox → POST) against the contract double; R02 status reply link is `/?room=<url-encoded room>#/board`; `board_link` replaces an existing room and keeps the fragment |
-| `test_web_text.py` | 2 | R03 history uses the 이/가 helper; under Node the helper gives 태오가, 지안이, 민수가, 서연이, ShiftPatch가 (helper only, no browser) |
-
-## Browser E2E steps (`qa/e2e-result.json`)
-
-1. landing renders (ko + en) · 2. OCR ambiguous image flagged, approve disabled · 3. unsupported layout → fallback message · 4. clear image read exactly → links must be confirmed → approval checkbox required → board · 5. hedged inability asks first, `네` opens 13–17 · 6. AI-off notice, availability, proposal, proxy refused, confirm blocked until both accept, confirm · 7. downloaded CSV rows equal the board table · 8. Jian drops 13–15: only that reopens, Taeo kept, old plan refused, board rows exact, English board · 9. narrow viewport + connection page shows BLOCKED · 10. no console errors.
-
-## Failures seen and fixed during the build (not hidden)
-
-- duplicate result merged its old `status` over `"duplicate"` (test_d10)
-- history detail keys `kind`/`version` collided with `log()` arguments (export tests)
-- roster import wiped a Switch room's account links (contract tests)
-- export list lacked its CSS class, so the download link wasn't found (E2E)
-- CSP blocked inline `style` attributes; switched to CSSOM (screenshot console errors)
-- table cell class collided with a landing-page class (visual check)
-- connection page assumed Docker absent; a Docker CLI is on PATH, status wording corrected (visual check)
+| `python3 -m unittest discover -s tests` (root review pass, 17:08 KST) | 0 | 24.1 s | 89 tests OK ([root-final-unit.json](root-final-unit.json)) |
+| `node e2e/run.mjs` (initial build) | 0 | 7.0 s | 10/10 steps |
+| `python3 qa/ai_live_check.py` | 0 | ~27 s | 7/7 suggestions matched (`qa/ai-live.json`) |
 
 ## Not tested
 
-By this build agent: a live Switch server. Root ran both a baseline and a final corrected-source trace separately: [LIVE_SWITCH_REPORT.md](LIVE_SWITCH_REPORT.md). Also not tested: `manage.py register-agent` / `set-addressing` against a server; managed/cloud Switch; real phone photos; Python versions other than 3.14.5; browsers other than Chrome 157; concurrent multi-process writers (single process by design).
-
-## Independent final-source verification
-
-Root ran the full suite again after the correction pass: **89 tests, exit 0, 23.357 seconds reported by unittest**. See [root-final-unit.json](root-final-unit.json) and [root-final-unit.log](root-final-unit.log). Root then ran the final source through local Switch 0.31.0 and native Mattermost again: actual AI interpretation and self-confirmation, two availability replies, own-part acceptance, manager confirmation, partial inability, stale-confirm rejection and CSV download all completed. [Final live evidence](final-live-evidence.json).
-
-Chrome through CUA independently checked OCR upload of a synthetic clear fixture, editable fields, account confirmations, required approval and import into the local fixture; native chat replies without refresh; the room-bound status link; actual CSV download matching its hash; and ICS generation. The CSV route initially returned 404 in the old long-running process. Reloading the corrected source resolved it, and both API and browser download succeeded. Mattermost browser WebSocket rejected a 127.0.0.1 origin; opening its configured localhost SiteURL fixed live updates without changing security settings.
-
-The 77-second video was encoded from real browser captures. Full H.264 decoding and direct review of one frame from every scene completed. The MP4 is local; there is no video URL or contest submission.
+Fault paths on a live Switch server (malformed frames, silent sockets, reconnect, gap, eviction, failed reply delivery) — fake sockets and the contract double only. Managed/cloud Switch. Real phone photos. Python versions other than 3.14.5; browsers other than Chrome. Concurrent writers from more than one ShiftPatch process beyond the outbox lease test. An ICS file re-imported into a calendar client.

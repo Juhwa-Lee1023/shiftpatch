@@ -1,36 +1,36 @@
 {
-  "at": "2026-11-07T09:32:36.413Z",
+  "at": "2026-11-07T09:48:59.266Z",
   "command": "node e2e/run.mjs",
   "browser": "system Google Chrome via Playwright channel=chrome (headless)",
   "ai": "off (SHIFTPATCH_AI=off) for determinism",
-  "port": 8876,
-  "duration_ms": 11376,
+  "port": 8858,
+  "duration_ms": 11327,
   "exit_code": 0,
   "steps": [
     {
       "name": "landing renders (ko + en)",
       "ok": true,
-      "ms": 319
+      "ms": 283
     },
     {
       "name": "OCR: ambiguous synthetic image is flagged and import stays blocked",
       "ok": true,
-      "ms": 1933
+      "ms": 948
     },
     {
       "name": "OCR: unsupported layout falls back to CSV/manual",
       "ok": true,
-      "ms": 816
+      "ms": 818
     },
     {
       "name": "OCR: clear image → confirm account links → explicit approval → board",
       "ok": true,
-      "ms": 1546
+      "ms": 1560
     },
     {
       "name": "chat: tentative inability asks first, then yes opens 13–17",
       "ok": true,
-      "ms": 203
+      "ms": 259
     },
     {
       "name": "chat: invalid clock time and ranged withdrawal change only what was asked",
@@ -40,32 +40,32 @@
     {
       "name": "chat: availability, proposal, self acceptance, proxy refused, manager confirms",
       "ok": true,
-      "ms": 753
+      "ms": 755
     },
     {
       "name": "board + CSV show the same confirmed coverage",
       "ok": true,
-      "ms": 241
+      "ms": 341
     },
     {
       "name": "after confirmation Jian drops 13–15: only that interval reopens, old plan cannot re-confirm",
       "ok": true,
-      "ms": 491
+      "ms": 551
     },
     {
       "name": "board: an undelivered reply is shown and sent again without changing the record",
       "ok": true,
-      "ms": 2319
+      "ms": 2432
     },
     {
       "name": "Switch room review lists the linked participant IDs and blocks an unlinked person",
       "ok": true,
-      "ms": 1457
+      "ms": 1909
     },
     {
       "name": "narrow viewport and connection page",
       "ok": true,
-      "ms": 148
+      "ms": 184
     },
     {
       "name": "no browser console errors",
