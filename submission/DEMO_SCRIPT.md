@@ -2,7 +2,7 @@
 
 `ShiftPatch_Demo_EN_live_9325ac3.mp4`: 122 seconds, 1920×1080, H.264, silent, burned-in English captions and a separate WebVTT file. It is in the task deliverables and has not been uploaded. The official submission needs an under-three-minute public or unlisted YouTube or Loom URL.
 
-It is cut from one live run of the final code `9325ac3` on 2026-11-07, 21:21–21:23 KST (run D in `qa/LIVE_SWITCH_REPORT.md`): ShiftPatch connected to a local self-hosted Switch 0.31.0 with Mattermost, a new private room, AI reading off. Playwright recorded the native Mattermost channel, signed in as Seoyeon, and the ShiftPatch board while the run happened. The operator's script posted each message through Mattermost's API as that fictional person, so messages appear in the channel without anyone typing; the video says so on its first card.
+It is cut from one live run of `9325ac3` on 2026-11-07, 21:21–21:23 KST (run D in `qa/LIVE_SWITCH_REPORT.md`). The final code `3e6c861` differs only in how confirmation questions from before the upgrade are handled, which the video does not show. Run D: ShiftPatch connected to a local self-hosted Switch 0.31.0 with Mattermost, a new private room, AI reading off. Playwright recorded the native Mattermost channel, signed in as Seoyeon, and the ShiftPatch board while the run happened. The operator's script posted each message through Mattermost's API as that fictional person, so messages appear in the channel without anyone typing; the video says so on its first card.
 
 The recording kept a 1600×712 area of each 1600×800 window, so board scenes whose content fell below that line use the same run's full-size screenshots. A chat scene may end by holding its last real frame for a few seconds so the caption can be read. Nothing in the chat or the app was redrawn. `edit-manifest.json` lists each scene's source and times.
 
@@ -22,6 +22,6 @@ The recording kept a 1600×712 area of each 1600×800 window, so board scenes wh
 | 102–114 s | Board for the same room after the run (slow pan over its full-page capture) | still capture | The board: 13:00–15:00 has nobody assigned. P2 stays confirmed in the history, marked “confirmed earlier · 13:00–15:00 reopened”, and lists the same two files. |
 | 114–122 s | End card (text only) | card | — |
 
-The free-text AI reader is not in this video; the run had AI reading off. It was checked separately (`node e2e/ai_trace.mjs`) and is described in the README. The earlier 105-second and 77-second videos are kept unchanged in the working project.
+The free-text AI reader is not in this video; the run had AI reading off. It was checked separately with `node e2e/ai_trace.mjs` and in live run E over Switch (not recorded), and is described in the README. The earlier 105-second and 77-second videos are kept unchanged in the working project.
 
 Re-recording: use explicit `2026-11-09` dates in a Switch room, which runs on the real clock. The local demo room has a synthetic clock set to Sunday 11/8.

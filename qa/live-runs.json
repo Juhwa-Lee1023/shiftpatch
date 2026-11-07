@@ -1,5 +1,5 @@
 {
- "what": "Live runs on local self-hosted Switch 0.31.0 + Mattermost, 2026-11-07, synthetic team of four, one operator posting through Mattermost's REST API, AI reading off, agent shiftpatch3, one new private room and data folder per run. Sanitized: no agent, room, post or sender ids, no keys or passwords.",
+ "what": "Live runs on local self-hosted Switch 0.31.0 + Mattermost, 2026-11-07, synthetic team of four, one operator posting through Mattermost's REST API, agent shiftpatch3, AI reading off in A-D and on in E, one new private room and data folder per run. Sanitized: no agent, room, post or sender ids, no keys or passwords.",
  "runs": {
   "A": {
    "how": "flow by script; probes and links by live_setup_b.py",
@@ -1844,6 +1844,577 @@
     "code_commit": "9325ac31d239a70e1b0462365e824efe0ede9f3f",
     "last_stdout_line": "ShiftPatch stopped",
     "stderr_lines": 119,
+    "stderr_lines_other_than_requests": [],
+    "exit_code_after_sigterm": 0
+   }
+  },
+  "E": {
+   "how": "AI reader on (local Claude CLI); same agent, no new agent or key",
+   "setup_room_and_agent": {
+    "started_kst": "2026-11-07T21:48:16+09:00",
+    "steps": [
+     {
+      "step": "register-agent",
+      "skipped": "existing shiftpatch3 reused; no agent or key created"
+     },
+     {
+      "step": "gateway session",
+      "http": 200
+     },
+     {
+      "step": "gateway create room",
+      "http": 201
+     },
+     {
+      "step": "manage.py set-addressing anyone",
+      "exit_code": 1,
+      "output": "HTTP 403\nset-addressing was refused; set the addressing rule in the Switch Gateway instead"
+     },
+     {
+      "step": "gateway addressing-policy for shiftpatch3 in the new room",
+      "http": 200
+     },
+     {
+      "step": "manage.py set-room",
+      "exit_code": 0
+     }
+    ],
+    "secrets_printed": false,
+    "finished_kst": "2026-11-07T21:48:16+09:00",
+    "agent_name": "shiftpatch3"
+   },
+   "setup_links": {
+    "started_kst": "2026-11-07T21:48:32+09:00",
+    "steps": [
+     {
+      "step": "bridge",
+      "state": "connected",
+      "room_covered": true
+     },
+     {
+      "step": "mattermost logins",
+      "ok": [
+       "jian",
+       "minsu",
+       "seoyeon",
+       "taeo"
+      ]
+     },
+     {
+      "step": "probe post",
+      "attempt": 1,
+      "account": "seoyeon",
+      "http": 201
+     },
+     {
+      "step": "probe post",
+      "attempt": 1,
+      "account": "minsu",
+      "http": 201
+     },
+     {
+      "step": "probe post",
+      "attempt": 1,
+      "account": "jian",
+      "http": 201
+     },
+     {
+      "step": "probe post",
+      "attempt": 1,
+      "account": "taeo",
+      "http": 201
+     },
+     {
+      "step": "probes seen",
+      "accounts": [
+       "jian",
+       "minsu",
+       "seoyeon",
+       "taeo"
+      ],
+      "room_version_before": 0,
+      "room_version_after": 0
+     },
+     {
+      "step": "manage.py senders",
+      "exit_code": 0,
+      "listed": [
+       {
+        "position": 1,
+        "display_name": "taeo",
+        "times": 1
+       },
+       {
+        "position": 2,
+        "display_name": "jian",
+        "times": 1
+       },
+       {
+        "position": 3,
+        "display_name": "minsu",
+        "times": 1
+       },
+       {
+        "position": 4,
+        "display_name": "seoyeon",
+        "times": 1
+       }
+      ],
+      "text_stored": false
+     },
+     {
+      "step": "manage.py link <sender from senders> <staff_id>",
+      "position": 1,
+      "staff_id": "taeo",
+      "exit_code": 0,
+      "output": "linked <sender #1> to taeo; 1 Switch participants linked in this room"
+     },
+     {
+      "step": "manage.py link <sender from senders> <staff_id>",
+      "position": 2,
+      "staff_id": "jian",
+      "exit_code": 0,
+      "output": "linked <sender #2> to jian; 2 Switch participants linked in this room"
+     },
+     {
+      "step": "manage.py link <sender from senders> <staff_id>",
+      "position": 3,
+      "staff_id": "minsu",
+      "exit_code": 0,
+      "output": "linked <sender #3> to minsu; 3 Switch participants linked in this room"
+     },
+     {
+      "step": "manage.py link <sender from senders> <staff_id>",
+      "position": 4,
+      "staff_id": "seoyeon",
+      "exit_code": 0,
+      "output": "linked <sender #4> to seoyeon; 4 Switch participants linked in this room"
+     },
+     {
+      "step": "manage.py link with an id never observed",
+      "exit_code": 1,
+      "refused": true
+     },
+     {
+      "step": "after linking",
+      "linked": [
+       "jian",
+       "minsu",
+       "seoyeon",
+       "taeo"
+      ],
+      "unlinked_left": 0
+     },
+     {
+      "step": "probe text in database",
+      "found": false
+     }
+    ],
+    "secrets_printed": false,
+    "finished_kst": "2026-11-07T21:48:37+09:00"
+   },
+   "flow": {
+    "started": "2026-11-07T12:48:37.264Z",
+    "exit_code": 0,
+    "duration_s": 100.654,
+    "agent": "shiftpatch3",
+    "ai": "on (local Claude CLI)",
+    "trace": [
+     {
+      "step": "ocr_review_import_into_switch_room",
+      "roster_version": 1
+     },
+     {
+      "actor": "minsu",
+      "body": "I might be unable to cover Monday 13-17",
+      "seconds_to_state": 5.121,
+      "version": 1,
+      "gaps": [],
+      "pending": [
+       "Q1"
+      ],
+      "outbox": {
+       "sent": 5
+      },
+      "shot": "02-minsu-asks.png"
+     },
+     {
+      "actor": "minsu",
+      "body": "yes",
+      "seconds_to_state": 0.423,
+      "version": 2,
+      "gaps": [
+       [
+        780,
+        1020
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 6
+      },
+      "shot": "03-minsu-yes.png"
+     },
+     {
+      "actor": "jian",
+      "body": "I can cover two hours after lunch on Monday",
+      "seconds_to_state": 4.127,
+      "version": 2,
+      "gaps": [
+       [
+        780,
+        1020
+       ]
+      ],
+      "pending": [
+       "Q2"
+      ],
+      "outbox": {
+       "sent": 7
+      },
+      "shot": "04-jian-free-text.png"
+     },
+     {
+      "actor": "jian",
+      "body": "yes",
+      "seconds_to_state": 0.434,
+      "version": 3,
+      "gaps": [
+       [
+        780,
+        1020
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 8
+      },
+      "shot": "05-jian-yes.png"
+     },
+     {
+      "actor": "taeo",
+      "body": "available 2026-11-09 15:00-17:00",
+      "seconds_to_state": 0.429,
+      "version": 4,
+      "gaps": [
+       [
+        780,
+        1020
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 9
+      },
+      "shot": "06-taeo-available-proposal.png"
+     },
+     {
+      "actor": "jian",
+      "body": "accept P2-a",
+      "seconds_to_state": 0.225,
+      "version": 5,
+      "gaps": [
+       [
+        780,
+        1020
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 10
+      },
+      "shot": "07-jian-accepts.png"
+     },
+     {
+      "actor": "taeo",
+      "body": "accept P2-b",
+      "seconds_to_state": 0.435,
+      "version": 6,
+      "gaps": [
+       [
+        780,
+        1020
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 11
+      },
+      "shot": "08-taeo-accepts.png"
+     },
+     {
+      "actor": "seoyeon",
+      "body": "both of them said yes",
+      "seconds_to_state": 3.734,
+      "version": 6,
+      "gaps": [
+       [
+        780,
+        1020
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 12
+      },
+      "shot": "09-manager-hearsay.png"
+     },
+     {
+      "actor": "seoyeon",
+      "body": "confirm P2",
+      "seconds_to_state": 0.236,
+      "version": 7,
+      "gaps": [],
+      "pending": [],
+      "outbox": {
+       "sent": 13
+      },
+      "shot": "10-seoyeon-confirms.png"
+     },
+     {
+      "actor": "jian",
+      "body": "unavailable 2026-11-09 13:00-15:00",
+      "seconds_to_state": 0.218,
+      "version": 8,
+      "gaps": [
+       [
+        780,
+        900
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 14
+      },
+      "shot": "11-jian-drops.png"
+     },
+     {
+      "actor": "seoyeon",
+      "body": "confirm P2",
+      "seconds_to_state": 0.426,
+      "version": 8,
+      "gaps": [
+       [
+        780,
+        900
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 15
+      },
+      "shot": "12-old-confirm-refused.png"
+     },
+     {
+      "actor": "seoyeon",
+      "body": "export",
+      "seconds_to_state": 0.219,
+      "version": 8,
+      "gaps": [
+       [
+        780,
+        900
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 17
+      },
+      "shot": "13-export-csv.png"
+     },
+     {
+      "actor": "seoyeon",
+      "body": "export ics",
+      "seconds_to_state": 0.429,
+      "version": 8,
+      "gaps": [
+       [
+        780,
+        900
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 19
+      },
+      "shot": "14-export-ics.png"
+     },
+     {
+      "actor": "seoyeon",
+      "body": "status",
+      "seconds_to_state": 0.427,
+      "version": 8,
+      "gaps": [
+       [
+        780,
+        900
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 20
+      },
+      "shot": "15-status-link.png"
+     }
+    ],
+    "console_errors": []
+   },
+   "final_state": {
+    "version": 8,
+    "gaps": [
+     [
+      780,
+      900
+     ]
+    ],
+    "coverage": [
+     {
+      "start": 540,
+      "end": 780,
+      "status": "original",
+      "staff_id": "jian"
+     },
+     {
+      "start": 780,
+      "end": 900,
+      "status": "uncovered",
+      "staff_id": null
+     },
+     {
+      "start": 900,
+      "end": 1020,
+      "status": "confirmed",
+      "staff_id": "taeo"
+     },
+     {
+      "start": 1020,
+      "end": 1080,
+      "status": "original",
+      "staff_id": "taeo"
+     }
+    ],
+    "proposals": [
+     {
+      "proposal_id": "P2",
+      "state": "confirmed",
+      "cuts": [
+       {
+        "staff_id": "jian",
+        "start": 780,
+        "end": 900
+       }
+      ]
+     },
+     {
+      "proposal_id": "P1",
+      "state": "superseded",
+      "cuts": []
+     }
+    ],
+    "exports": [
+     {
+      "file_name": "coverage-2026-11-09-v8-66f67e321bf2.ics",
+      "kind": "ics",
+      "version": 8,
+      "state": "published"
+     },
+     {
+      "file_name": "coverage-2026-11-09-v8-022b0a2dfaf4.csv",
+      "kind": "csv",
+      "version": 8,
+      "state": "published"
+     }
+    ],
+    "outbox": {
+     "sent": 20
+    },
+    "delivery": [],
+    "ai": {
+     "enabled": true,
+     "status": "ok"
+    },
+    "bridge": {
+     "state": "connected",
+     "counters": {
+      "frames": 72,
+      "pings": 53,
+      "pongs": 53,
+      "messages": 18,
+      "addressed": 18,
+      "gaps": 0,
+      "reconnects": 0,
+      "bad_frames": 0,
+      "read_timeouts": 0
+     },
+     "unlinked_seen": 0
+    },
+    "csv_http": 200,
+    "csv": "date,duty,start,end,assignee,status,status_ko,version,generated_at\r\n2026-11-09,일반 문의,09:00,13:00,지안,original,원 근무,8,2026-11-07T21:49:54+09:00\r\n2026-11-09,일반 문의,13:00,15:00,,uncovered,미해결,8,2026-11-07T21:49:54+09:00\r\n2026-11-09,일반 문의,15:00,17:00,태오,confirmed,대체 확정,8,2026-11-07T21:49:54+09:00\r\n2026-11-09,일반 문의,17:00,18:00,태오,original,원 근무,8,2026-11-07T21:49:54+09:00\r\n",
+    "ics_http": 200,
+    "ics_event_lines": [
+     "DTSTART;TZID=Asia/Seoul:20261109T090000",
+     "DTEND;TZID=Asia/Seoul:20261109T130000",
+     "SUMMARY:지안 · 일반 문의",
+     "DESCRIPTION:원 근무 · snapshot v8",
+     "DTSTART;TZID=Asia/Seoul:20261109T150000",
+     "DTEND;TZID=Asia/Seoul:20261109T170000",
+     "SUMMARY:태오 · 일반 문의",
+     "DESCRIPTION:대체 확정 · snapshot v8",
+     "DTSTART;TZID=Asia/Seoul:20261109T170000",
+     "DTEND;TZID=Asia/Seoul:20261109T180000",
+     "SUMMARY:태오 · 일반 문의",
+     "DESCRIPTION:원 근무 · snapshot v8"
+    ]
+   },
+   "ai_read_check": {
+    "what": "processed records of run E with interpreted_by or via (read-only query after the run)",
+    "records": [
+     {
+      "status": "pending",
+      "code": null,
+      "interpreted_by": "ai",
+      "pending": "Q1",
+      "via": null,
+      "reply_tail": "covered. Reply `yes` or `no`. (Q1, until 21:59) · read by AI"
+     },
+     {
+      "status": "applied",
+      "code": "INABILITY_RECORDED",
+      "interpreted_by": null,
+      "pending": null,
+      "via": "Q1",
+      "reply_tail": "7:00 is now uncovered. Nobody has said they can take it yet."
+     },
+     {
+      "status": "pending",
+      "code": null,
+      "interpreted_by": "ai",
+      "pending": "Q2",
+      "via": null,
+      "reply_tail": "a shift. Reply `yes` or `no`. (Q2, until 21:59) · read by AI"
+     },
+     {
+      "status": "applied",
+      "code": "AVAILABILITY_RECORDED",
+      "interpreted_by": null,
+      "pending": null,
+      "via": "Q2",
+      "reply_tail": "–15:00.\nJian: `accept P1-a`\nThen Seoyeon sends `confirm P1`."
+     },
+     {
+      "status": "ok",
+      "code": null,
+      "interpreted_by": "ai",
+      "pending": null,
+      "via": null,
+      "reply_tail": "meone else. Each person replies for themselves. · read by AI"
+     }
+    ]
+   },
+   "server": {
+    "code_commit": "3e6c861c220b04cd3616fc2c9ac0a61b26799d95",
+    "last_stdout_line": "ShiftPatch stopped",
+    "stderr_lines": 192,
     "stderr_lines_other_than_requests": [],
     "exit_code_after_sigterm": 0
    }

@@ -1,8 +1,8 @@
 {
-  "at": "2026-11-07T12:27:23.650Z",
+  "at": "2026-11-07T12:51:17.199Z",
   "command": "node e2e/ai_trace.mjs",
   "ai": "on (local Claude CLI login)",
-  "duration_ms": 16113,
+  "duration_ms": 14327,
   "exit_code": 0,
   "replies": [
     {

@@ -2,6 +2,27 @@
 
 Machine: macOS (Darwin 27), Python 3.14.5, Node 24.19, Google Chrome via Playwright 1.56.1 `channel: "chrome"`, Apple Vision via `swift`.
 
+## Final audit follow-up (2026-11-07, 21:42–22:00 KST)
+
+Code commit `3e6c861`: open confirmation questions created before `source_created_ms` existed are closed when the data folder opens, and `pick_pending` refuses any such row, bare or by Q id (`LEGACY_CONFIRMATION`). Receipts in the task folder `final-audit-followup/evidence/`.
+
+| Command | HEAD | Exit | Duration | Result |
+|---|---|---|---|---|
+| `python3 -m unittest discover -s tests -v` | `3e6c861` | 0 | 42.3 s | **167 tests OK**, 0 warning lines |
+| same with `-X dev -X tracemalloc=30 -W always::ResourceWarning` | `3e6c861` | 0 | 72.5 s | 167 OK, 0 |
+| same with `-X dev -W error::ResourceWarning` | `3e6c861` | 0 | 42.0 s | 167 OK, 0 |
+| `LegacyQuestions` tests against `9325ac3` | `9325ac3` | 1 | — | 3 of 4 fail; the one that passes (sending the message again) was already right |
+| root's legacy repro (copy writing into the follow-up folder) | `3e6c861` | 0 | — | `LEGACY_CONFIRMATION`, version 1 → 1, no gap (was `INABILITY_RECORDED`, 1 → 2, gap 15–16) |
+| `node e2e/run.mjs` | `3e6c861` | 0 | 16.3 s | 15/15; clean server exit |
+| `node e2e/ai_trace.mjs` | `3e6c861` | 0 | 14.5 s | 6/6 |
+| live Switch, run E, AI reader on | `3e6c861` | 0 | 101 s | see `qa/LIVE_SWITCH_REPORT.md` |
+
+New tests (`LegacyQuestions`, 4; the old test that let such a row be answered is removed):
+- the root repro: an old `yes` against a question with no source time changes nothing and leaves it unanswered;
+- bare `네`/`아니요` and `yes Q2`/`no Q2`, written after the question, are all refused;
+- sending the message again gives a normal question that a later `yes` applies;
+- a real migration: a file whose `pending` table is put back to the `3ca97d6` schema, holding a confirmed replacement, history and one open question, is opened with `Store()`. The column is added, the open question is closed with no time filled in, every other table is byte-for-byte unchanged, a later `yes` finds nothing to answer, and a second open closes nothing.
+
 ## Six fixes from the final three-model review (2026-11-07, 20:44–21:30 KST)
 
 Code commits `a70ae7e` (the six fixes) and `9325ac3` (final code: history label for first links, table style, one more test). Receipts (argv, KST start and finish, duration, exit code, HEAD, warning lines found) are in the task folder `desktop-six-fixes-20261107T114207Z/evidence/`. Final-commit reruns are listed in that folder's `FINAL_REPORT.md`.

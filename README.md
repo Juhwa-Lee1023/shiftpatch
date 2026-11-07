@@ -30,7 +30,7 @@ Ctrl-C or `kill <pid>` stops it: the Switch connection is closed first, a reply 
 
 ## Connect it to a local Switch
 
-This is the path used for the live checks on 2026-11-07 (agent `shiftpatch3`, four new private rooms, final code `9325ac3`; [report](qa/LIVE_SWITCH_REPORT.md)). No key or password is in this repository.
+This is the path used for the live checks on 2026-11-07 (agent `shiftpatch3`, five new private rooms, final code `3e6c861`; [report](qa/LIVE_SWITCH_REPORT.md)). No key or password is in this repository.
 
 1. Run a self-hosted Switch with its Mattermost bridge (Switch self-host docs; the check used tag `switch-v0.31.0`, every host port bound to 127.0.0.1). Create four Mattermost users for the synthetic team.
 2. Register the agent with a registration key from the Gateway (**API Keys**). The key is read from the environment and not stored:
@@ -77,15 +77,16 @@ Korean works too (`가능 13-15`, `수락 P2-a`, `확정 P2`, `불가 …`, `표
 
 ## Verification status (2026-11-07 KST)
 
-The code that was tested is commit `9325ac3`. The commits after it change documentation, screenshots and test output only. The first two live runs used `a70ae7e`, which differs from `9325ac3` only in one history label and one table style (a person linked for the first time is no longer logged as "Chat account changed").
+The code that was tested is commit `3e6c861`. The commits after it change documentation and test output only. Earlier runs used `a70ae7e` and `9325ac3`; `3e6c861` adds only the handling of confirmation questions created before the upgrade (below), and `9325ac3` only a history label and a table style.
 
 | Area | Status | Evidence |
 |---|---|---|
-| Live local Switch 0.31.0 + Mattermost | Four runs on 2026-11-07, each in a new private room with the new agent `shiftpatch3`, a new data folder and AI reading off: A (21:01–21:05) and B (21:06–21:09) at `a70ae7e`; C (21:15–21:17) and D (21:21–21:23, recorded for the video) at `9325ac3`. Each run: four identity probes → `manage.py senders` → `manage.py link` (room version stayed 0) → roster image read on the review screen → hedged message → bare `yes` → `13:60` refused → two availabilities → two self-acceptances → confirm → Jian drops 13–15 → old confirm refused → CSV and ICS export → status. All four ended at version 8 with only 13–15 uncovered; every reply was sent; each server exited 0 on SIGTERM. Synthetic team, one operator posting through Mattermost's API. | [qa/LIVE_SWITCH_REPORT.md](qa/LIVE_SWITCH_REPORT.md), [qa/live-runs.json](qa/live-runs.json) |
-| Earlier full live run with the AI reader | Once, at `c65b2ec`, before the socket cleanup and these fixes. Connect and stop were checked again at `9dd3a1b`. | same |
+| Live local Switch 0.31.0 + Mattermost, AI reader on | Run E, 2026-11-07 21:48–21:50 KST, code `3e6c861`, new private room, same agent `shiftpatch3`, the locally signed-in Claude CLI. Minsu's hedged line and Jian's "I can cover two hours after lunch on Monday" came back as questions marked read by AI (`interpreted_by: ai` in the stored records), each confirmed by that person's `yes`; the manager's "both of them said yes" was read by AI and changed nothing; then both acceptances, confirm, Jian's 13–15 dropout, refused re-confirm, CSV and ICS export, status. Version 8, only 13–15 uncovered, 20 replies sent, exit 0 on SIGTERM. | [qa/LIVE_SWITCH_REPORT.md](qa/LIVE_SWITCH_REPORT.md) |
+| Live local Switch 0.31.0 + Mattermost, AI off | Four runs on 2026-11-07, each in a new private room with the new agent `shiftpatch3`, a new data folder and AI reading off: A (21:01–21:05) and B (21:06–21:09) at `a70ae7e`; C (21:15–21:17) and D (21:21–21:23, recorded for the video) at `9325ac3`. Each run: four identity probes → `manage.py senders` → `manage.py link` (room version stayed 0) → roster image read on the review screen → hedged message → bare `yes` → `13:60` refused → two availabilities → two self-acceptances → confirm → Jian drops 13–15 → old confirm refused → CSV and ICS export → status. All four ended at version 8 with only 13–15 uncovered; every reply was sent; each server exited 0 on SIGTERM. Synthetic team, one operator posting through Mattermost's API. | [qa/LIVE_SWITCH_REPORT.md](qa/LIVE_SWITCH_REPORT.md), [qa/live-runs.json](qa/live-runs.json) |
+| Earlier full live run with the AI reader | Once, at `c65b2ec`, before the socket cleanup and these fixes. | same |
 | `manage.py register-agent`, `set-room`, `senders`, `link` | Ran against that server | same |
 | `manage.py set-addressing` | Server answered HTTP 403 (four more times on 2026-11-07); Gateway rule used instead | same |
-| Unit and integration tests | 164 pass with no ResourceWarning, also with warnings made errors: the earlier 136 and 28 for the final review (late yes/no, demo queue over real local HTTP, sender IDs and linking, 24:00). Of the first 27, 22 fail against `3ca97d6`; the 5 that pass there check behaviour that was already right. | [qa/TEST_REPORT.md](qa/TEST_REPORT.md) |
+| Unit and integration tests | 167 pass with no ResourceWarning, also with warnings made errors: the earlier 136 and 31 for the final review (late yes/no, questions from before the upgrade including a real migration, demo queue over real local HTTP, sender IDs and linking, 24:00). Of the first 27, 22 fail against `3ca97d6`; the 5 that pass there check behaviour that was already right. 3 of the 4 upgrade tests fail against `9325ac3`. | [qa/TEST_REPORT.md](qa/TEST_REPORT.md) |
 | Browser flow | 15/15 E2E steps, AI off, including the room's own script clicked line by line to the reopened 13–15, once in Korean and once in English. The server then exits 0 on SIGTERM with nothing on stderr but its request log. | [qa/e2e-result.json](qa/e2e-result.json) |
 | AI reader | `node e2e/ai_trace.mjs`: the AI script lines 1–4 and 8 through the real Claude CLI reader, 6/6 checks | [qa/e2e-ai-result.json](qa/e2e-ai-result.json) |
 | Late yes/no, out-of-order questions | Synthetic envelopes with chosen timestamps. How Switch's sequence relates to the platform's message time was not measured on a live server. | `tests/test_final_six.py` |
@@ -97,7 +98,7 @@ The code that was tested is commit `9325ac3`. The commits after it change docume
 ## Tests
 
 ```bash
-python3 -m unittest discover -s tests          # 164 tests
+python3 -m unittest discover -s tests          # 167 tests
 npm install && node e2e/run.mjs                # browser E2E, system Chrome via Playwright, AI off
 node e2e/ai_trace.mjs                          # free-text path with the real AI reader
 python3 qa/ai_live_check.py                    # 7 synthetic sentences through the CLI reader
@@ -137,6 +138,7 @@ Rules worth knowing:
 - An acceptance attaches to a part's component hash: room, date, duty, person, interval, availability id and revision, account-link revision, roster version. A newer proposal reuses an acceptance only when that hash is identical (shown as "carried from P1-a").
 - A `yes` or `no` answers one open question of the same person, asked to the same chat account, for the exact action and dependency revision. The question stays open 10 minutes from when ShiftPatch received the message. A reply written (platform timestamp) before the message a question is about never answers that question. With two open, a number is required (`yes Q3`).
 - A message processed late does not replace a newer open question of the same kind.
+- A question created before this upgrade has no record of when its message was written. Opening the data folder closes such open questions (nothing they asked about was applied, and `run.py` says how many), and no `yes`/`no` can answer one. Confirmed coverage and history are not touched; send the message again if it still applies.
 - Which message came first is decided by the platform timestamp: a message older than or equal to the person's last applied one is not applied. Messages more than 2 minutes in the future or 15 minutes in the past are refused.
 - Account links can change only before coordination starts. A relink closes that person's open questions and raises the link revision above every earlier one.
 
@@ -174,7 +176,7 @@ Message bodies are not written to the app's disk: the database keeps structured 
 
 ## Demo video
 
-A 122-second silent video with English captions, cut from the recorded live run of `9325ac3` (local Switch 0.31.0 + Mattermost, AI reading off). Scenes, sources and captions: [submission/DEMO_SCRIPT.md](submission/DEMO_SCRIPT.md). The video file is not in this repository.
+A 122-second silent video with English captions, cut from the recorded live run of `9325ac3` (local Switch 0.31.0 + Mattermost, AI reading off). `3e6c861` changes only how questions from before the upgrade are handled, which the video does not show. Scenes, sources and captions: [submission/DEMO_SCRIPT.md](submission/DEMO_SCRIPT.md). The video file is not in this repository.
 
 ## License and provenance
 

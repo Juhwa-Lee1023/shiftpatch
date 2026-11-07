@@ -1,6 +1,6 @@
 # Scope and remaining work
 
-Updated 2026-11-07, 21:30 KST, after the six fixes from the final three-model review (final code `9325ac3`). Live check: [qa/LIVE_SWITCH_REPORT.md](../qa/LIVE_SWITCH_REPORT.md). Tests: [qa/TEST_REPORT.md](../qa/TEST_REPORT.md).
+Updated 2026-11-07, 21:55 KST (final code `3e6c861`). Live check: [qa/LIVE_SWITCH_REPORT.md](../qa/LIVE_SWITCH_REPORT.md). Tests: [qa/TEST_REPORT.md](../qa/TEST_REPORT.md).
 
 ## Current scope
 
@@ -18,19 +18,20 @@ Updated 2026-11-07, 21:30 KST, after the six fixes from the final three-model re
 - A message that fails five times halts the bridge before its sequence is acknowledged. Restart ShiftPatch to replay it; there is no button for this.
 - An export interrupted by a stopped process gets a closing "did not finish, send export again" reply at the next start. The export itself is not retried automatically.
 - Which question a `yes`/`no` can answer is decided by the platform's message timestamps: a reply written before the message a question is about leaves that question alone. This is tested with chosen timestamps. How Switch's delivery sequence relates to those timestamps was not measured; two messages with the same millisecond, or a platform clock that jumps, are not handled specially.
+- Confirmation questions created before the upgrade to `source_created_ms` are closed when the data folder is opened, and none can be answered. Someone who still means one has to send the original message again.
 - The local demo room handles one message at a time per room. Up to 8 can wait; more are refused with `DEMO_ROOM_BUSY`, and a message that cannot start within 180 s is refused too. Its text then stays in the transcript without a reply.
 - On Ctrl-C or SIGTERM a reply that is being sent gets up to 15 s. If it is still running, the stop line says so and the process exits anyway; that reply follows the at-least-once rule above.
 
 ## Setup
 
-- `manage.py register-agent`, `set-room`, `senders` and `link` ran against local Switch 0.31.0 on 2026-11-07 in four runs (`a70ae7e` and `9325ac3`); `import-links` ran in the earlier check. `manage.py set-addressing anyone` got HTTP 403 each time; the room's addressing rule was set in the Gateway instead. The wrapper exits with an error and says so.
+- `manage.py register-agent`, `set-room`, `senders` and `link` ran against local Switch 0.31.0 on 2026-11-07 in five runs (`a70ae7e`, `9325ac3`, `3e6c861`); `import-links` ran in the earlier check. `manage.py set-addressing anyone` got HTTP 403 each time; the room's addressing rule was set in the Gateway instead. The wrapper exits with an error and says so.
 - The manager links each person from one real message: `manage.py senders` lists the sender IDs that reached the agent unlinked in the last hour, and `manage.py link` accepts only those. Self-linking is not implemented. The list keeps the ID, display name, times and a count, not the text.
 - Mattermost must be opened at its configured SiteURL (`http://localhost:18065` in the check); its WebSocket origin check rejects the 127.0.0.1 form.
 - Managed/cloud Switch and other chat platforms were not tested. OCR was tested on simple synthetic table images on macOS, not camera photos with perspective or handwriting.
 
 ## AI and messages
 
-Free-form text is interpreted by an already signed-in Claude CLI. The sender must confirm before the suggested action applies. A small synthetic check matched 7/7 cases, the browser trace of the AI script passed 6/6 on 2026-11-07 (code `9325ac3`), and the earlier live run at `c65b2ec` included real model calls. None of this is an accuracy estimate for a working team. With AI off, the demo script uses exact commands.
+Free-form text is interpreted by an already signed-in Claude CLI. The sender must confirm before the suggested action applies. A small synthetic check matched 7/7 cases, the browser trace of the AI script passed 6/6 on 2026-11-07 (code `3e6c861`), and live run E on the same code sent three free-form lines through the reader over Switch, all read by AI and confirmed by the sender. None of this is an accuracy estimate for a working team. With AI off, the demo script uses exact commands.
 
 The application stores structured actions, a body hash and its own replies, not people's messages. Chat history remains in Switch/Mattermost under their normal storage. The local demo transcript is in memory and clears on restart.
 

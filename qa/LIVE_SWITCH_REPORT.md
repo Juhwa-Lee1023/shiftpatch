@@ -4,7 +4,8 @@ Every run below used the same local self-hosted Switch 0.31.0 with its Mattermos
 
 | When (2026-11-07 KST) | ShiftPatch code | What ran |
 |---|---|---|
-| 21:15–21:17, run C | `9325ac3` (final code) | new room, identity probes → `manage.py senders` → `link`, roster image import, 13-message flow, AI off |
+| 21:48–21:50, run E | `3e6c861` (final code) | new room, same agent, probes → `senders` → `link`, roster image import, the flow with the **AI reader on** |
+| 21:15–21:17, run C | `9325ac3` | new room, identity probes → `manage.py senders` → `link`, roster image import, 13-message flow, AI off |
 | 21:21–21:23, run D | `9325ac3` | same steps in another new room, recorded; the final video is cut from it |
 | 21:01–21:05, run A | `a70ae7e` (six final-review fixes) | same steps; first run with the new agent `shiftpatch3` |
 | 21:06–21:09, run B | `a70ae7e` | same steps, recorded; its board history still said "Chat account changed" for first links, which `9325ac3` fixed |
@@ -12,6 +13,26 @@ Every run below used the same local self-hosted Switch 0.31.0 with its Mattermos
 | 18:35–18:39 | `c65b2ec` (first critique fixes) | full flow with the AI reader on |
 | 17:15–17:17 | source before the first commit (`9c9c95f` was committed at 17:34) | full flow with the AI reader on |
 | 16:58 | earliest source | exact commands only |
+
+## Code `3e6c861`, AI reader on: run E, 2026-11-07 21:48–21:50 KST
+
+Same setup as the runs below, reusing the agent `shiftpatch3` and its config: no agent or key was created for this run. One new private room, a new data folder, ShiftPatch on 127.0.0.1:8799 with the locally signed-in Claude CLI as the reader (model alias `sonnet`). `manage.py set-addressing anyone` again got HTTP 403 and the Gateway rule was used. Four probes were seen, the room version stayed 0, `senders` listed four IDs, `link` linked them and refused a guessed one. The roster came from `fixtures/ocr/clear.png` through the review screen.
+
+| # | Sender | Message (`@shiftpatch3 …`) | Version | Reply / state |
+|---|---|---|---|---|
+| 1 | minsu | `I might be unable to cover Monday 13-17` | 1 | Q1, 13:00–17:00 unavailable, **read by AI** (5.1 s); nothing recorded |
+| 2 | minsu | `yes` | 2 | 13:00–17:00 uncovered |
+| 3 | jian | `I can cover two hours after lunch on Monday` | 2 | Q2, available 13:00–15:00, **read by AI** (4.1 s); nothing recorded |
+| 4 | jian | `yes` | 3 | availability recorded, proposal P1 |
+| 5 | taeo | `available 2026-11-09 15:00-17:00` | 4 | P2: Jian 13–15, Taeo 15–17 |
+| 6–7 | jian, taeo | `accept P2-a`, `accept P2-b` | 5, 6 | both accepted |
+| 8 | seoyeon | `both of them said yes` | 6 | read by AI: cannot record for someone else; nothing changed |
+| 9 | seoyeon | `confirm P2` | 7 | confirmed, no gaps |
+| 10 | jian | `unavailable 2026-11-09 13:00-15:00` | 8 | only 13:00–15:00 uncovered again |
+| 11 | seoyeon | `confirm P2` | 8 | refused |
+| 12–14 | seoyeon | `export`, `export ics`, `status` | 8 | CSV and ICS of version 8 (HTTP 200 each), coverage and board link |
+
+The stored records of messages 1, 3 and 8 have `interpreted_by: ai`. A reply read by the rule reader would say "read by rule" and would have `interpreted_by: rule`; none did. 20 replies were sent with none failed. The bridge ended connected with 0 reconnects and 0 bad frames. On SIGTERM: `ShiftPatch stopped`, exit 0, stderr only request lines. The run was not recorded on video.
 
 ## Codes `9325ac3` and `a70ae7e`: four runs, 2026-11-07 21:01–21:23 KST
 
