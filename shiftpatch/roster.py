@@ -29,11 +29,13 @@ BY_ID = {d["staff_id"]: d for d in DIRECTORY}
 BLOCKING = {"DATE_YEAR_OR_FORMAT_NEEDS_REVIEW", "DATE_NOT_ROOM_DATE", "START_NEEDS_EXPLICIT_24H_TIME",
             "END_NEEDS_EXPLICIT_24H_TIME", "AMBIGUOUS_AM_PM", "NON_POSITIVE_OR_OVERNIGHT", "NOT_30_MIN_BOUNDARY",
             "DUTY_MISMATCH", "UNMAPPED_NAME", "MAPPING_NOT_CONFIRMED", "TWO_NAMES_ONE_ACCOUNT", "COLLISION",
-            "EMPTY_CELL", "STAFF_HAS_NO_SWITCH_ACCOUNT"}
+            "EMPTY_CELL", "STAFF_HAS_NO_SWITCH_ACCOUNT", "START_NOT_A_CLOCK_TIME", "END_NOT_A_CLOCK_TIME"}
 CSV_HEADERS = ["name", "date", "start", "end", "duty"]
 MAX_CSV_BYTES = 64 * 1024
 MAX_ROWS = 40
-HHMM = re.compile(r"^(?:[01]\d|2[0-4]):[0-5]\d$")
+# 00:00-23:59, plus 24:00 as the end of the day. 24:30, 24:01 and 13:60 are not times.
+HHMM = re.compile(r"^(?:(?:[01]\d|2[0-3]):[0-5]\d|24:00)$")
+CLOCK_SHAPE = re.compile(r"^\d{1,2}:\d{2}$")
 
 
 def now_ms() -> int:
@@ -132,7 +134,8 @@ def validate(rows, mapping: dict, confirmed_names: set, room_date=DATE, unlinked
                 ok_time = False
                 if re.fullmatch(r"\d{1,2}", v) and int(v) <= 12:
                     issues.append("AMBIGUOUS_AM_PM")
-                issues.append(f.upper() + "_NEEDS_EXPLICIT_24H_TIME")
+                # "24:30" or "13:60" is written as a clock time but is not one: say so for this row
+                issues.append(f.upper() + ("_NOT_A_CLOCK_TIME" if CLOCK_SHAPE.fullmatch(v) else "_NEEDS_EXPLICIT_24H_TIME"))
         if ok_time:
             s, e = iv.parse_hhmm(r["start"]), iv.parse_hhmm(r["end"])
             bad = iv.valid_write_range(s, e)
@@ -264,7 +267,27 @@ def import_switch_links(store, room_id, links: dict):
             rev = old[sid][1] if sid in old and sid not in changed else top + 1
             c.execute("INSERT INTO links(room_id, platform_user_id, staff_id, link_rev) VALUES (?,?,?,?)",
                       (room_id, pid, sid, rev))
+        c.execute("DELETE FROM unlinked_seen WHERE room_id=? AND platform_user_id IN "
+                  "(SELECT platform_user_id FROM links WHERE room_id=?)", (room_id, room_id))
         if changed and old:
             engine.log(c, room_id, rm["version"], room_now_ms(rm), "links_changed", None,
                        staff=sorted(changed), closed_questions=closed)
     return {"linked": len(links), "closed_questions": closed}
+
+
+def link_observed_sender(store, room_id, sender_id: str, staff_id: str, now_ms: int | None = None):
+    """Link one sender that has actually written to the agent in this room
+    (seen in unlinked_seen) to `staff_id`, keeping the other links. An id that
+    was never observed is refused: participant ids are opaque and are not
+    derived from another account's id or a display name."""
+    now_ms = now_ms if now_ms is not None else int(time.time() * 1000)
+    with store.snapshot() as c:
+        seen = {r["platform_user_id"] for r in engine.unlinked_seen(c, room_id, now_ms)}
+        current = {r["platform_user_id"]: r["staff_id"] for r in c.execute("SELECT * FROM links WHERE room_id=?", (room_id,))}
+    if sender_id not in seen:
+        raise engine.Rejected("SENDER_NOT_OBSERVED", sender=sender_id)
+    if staff_id not in BY_ID:
+        raise engine.Rejected("BAD_LINKS")
+    links = {pid: sid for pid, sid in current.items() if sid != staff_id}
+    links[sender_id] = staff_id
+    return import_switch_links(store, room_id, links)

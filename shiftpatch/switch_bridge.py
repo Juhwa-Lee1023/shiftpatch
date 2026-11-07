@@ -1,7 +1,7 @@
 """Switch agent-protocol adapter (WebSocket transport; SSE is deprecated).
 
 Built only from the published contract (docs.switchagents.ai, fetched
-2026-11-07, copies in docs/upstream/):
+2026-11-07; the fetched copies are not part of this package):
   GET  /health                                   public probe
   WS   /agents/{id}/connection/ws?connection_id=…&rooms=…&filter=…&start_from=…&expected_generation=…
        Authorization: Bearer <agent API key>

@@ -1,5 +1,6 @@
 """CONTRACT DOUBLE — not Switch. A tiny local server that speaks the parts
-of the documented agent protocol ShiftPatch uses (docs/upstream/*.md), so
+of the documented agent protocol ShiftPatch uses (docs.switchagents.ai,
+fetched 2026-11-07; the fetched copies are not part of this package), so
 the adapter can be exercised without Docker. Passing these tests says the
 adapter matches our reading of the docs; it says nothing about a live
 Switch deployment."""

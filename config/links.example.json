@@ -1,6 +1,7 @@
 {
-  "@switch-user-REPLACE-seoyeon:localhost": "seoyeon",
-  "@switch-user-REPLACE-minsu:localhost": "minsu",
-  "@switch-user-REPLACE-jian:localhost": "jian",
-  "@switch-user-REPLACE-taeo:localhost": "taeo"
+  "_how": "Usually not needed: `python3 manage.py senders` then `python3 manage.py link <sender> <staff_id>`. For a file import, each key is a sender id copied exactly from `manage.py senders` after that person wrote once to the agent in the room. Never build an id from another person's id or a display name. Keys starting with _ are ignored.",
+  "<sender id for Seoyeon, copied from manage.py senders>": "seoyeon",
+  "<sender id for Minsu, copied from manage.py senders>": "minsu",
+  "<sender id for Jian, copied from manage.py senders>": "jian",
+  "<sender id for Taeo, copied from manage.py senders>": "taeo"
 }

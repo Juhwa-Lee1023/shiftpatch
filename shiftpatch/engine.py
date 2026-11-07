@@ -11,6 +11,10 @@ from dataclasses import dataclass
 from . import intervals as iv
 
 PENDING_TTL_MS = 10 * 60 * 1000
+# How long an unlinked sender's id stays visible to the local admin, and how
+# many are kept per room. Only the id, display name, times and a count.
+UNLINKED_SEEN_TTL_MS = 60 * 60 * 1000
+UNLINKED_SEEN_MAX = 20
 
 
 class Rejected(Exception):
@@ -494,23 +498,37 @@ def dep_for(c, room_id, staff_id, action: dict) -> dict:
     return dep
 
 
-def create_pending(c, room_id, staff_id, action: dict, origin_msg: str, now_ms: int, asked_user: str | None = None) -> str:
-    """`now_ms` is when ShiftPatch received the message (our clock), so a
-    question asked about a delayed message still gets its full 10 minutes.
+def create_pending(c, room_id, staff_id, action: dict, origin_msg: str, now_ms: int, asked_user: str | None = None,
+                   source_created_ms: int | None = None) -> str:
+    """Two clocks, kept apart on purpose:
+    - `now_ms` is when ShiftPatch received the message (our clock). The
+      question's 10-minute lifetime runs from it, so a delayed message still
+      gets its full 10 minutes.
+    - `source_created_ms` is when the person wrote the message the question is
+      about (the platform's timestamp). It decides which questions a yes/no
+      can answer and which question replaces which.
+    A question of the same kind replaces an older open one. If the open one
+    comes from a message written later than this one (messages processed out
+    of order), this older message does not reopen or replace it.
     `asked_user` is the chat account the question went to; only that account
     can answer it, even if the staff link changes later."""
-    for r in c.execute("SELECT q_id, action_json FROM pending WHERE room_id=? AND staff_id=? AND state='open'",
-                       (room_id, staff_id)).fetchall():
-        if json.loads(r["action_json"])["kind"] == action["kind"]:
-            c.execute("UPDATE pending SET state='superseded' WHERE room_id=? AND q_id=?", (room_id, r["q_id"]))
+    same = [r for r in c.execute("SELECT q_id, action_json, source_created_ms FROM pending "
+                                 "WHERE room_id=? AND staff_id=? AND state='open'", (room_id, staff_id)).fetchall()
+            if json.loads(r["action_json"])["kind"] == action["kind"]]
+    if source_created_ms is not None:
+        newer = [r for r in same if r["source_created_ms"] is not None and r["source_created_ms"] > source_created_ms]
+        if newer:
+            raise Rejected("NEWER_QUESTION_OPEN", q_id=newer[0]["q_id"])
+    for r in same:
+        c.execute("UPDATE pending SET state='superseded' WHERE room_id=? AND q_id=?", (room_id, r["q_id"]))
     dep = dep_for(c, room_id, staff_id, action)
     c.execute("UPDATE rooms SET pending_counter=pending_counter+1 WHERE room_id=?", (room_id,))
     n = c.execute("SELECT pending_counter FROM rooms WHERE room_id=?", (room_id,)).fetchone()[0]
     q_id = f"Q{n}"
     c.execute("INSERT INTO pending(room_id, q_id, staff_id, origin_msg, action_json, dep_json, expires_ms, state, "
-              "created_ms, asked_user) VALUES (?,?,?,?,?,?,?,'open',?,?)",
+              "created_ms, asked_user, source_created_ms) VALUES (?,?,?,?,?,?,?,'open',?,?,?)",
               (room_id, q_id, staff_id, origin_msg, json.dumps(action, sort_keys=True), json.dumps(dep, sort_keys=True),
-               now_ms + PENDING_TTL_MS, now_ms, asked_user))
+               now_ms + PENDING_TTL_MS, now_ms, asked_user, source_created_ms))
     return q_id
 
 
@@ -526,17 +544,26 @@ def open_pendings(c, room_id, staff_id, now_ms):
     return live
 
 
-def pick_pending(c, room_id, staff_id, q_id, now_ms, sender: str | None = None):
-    """Resolve which open confirmation a bare yes/no refers to. `now_ms` is
-    the receive time of the yes/no, the same clock the question was set on.
-    A question asked to another chat account is never answered by this one
-    (import_switch_links closes such questions when it relinks)."""
+def pick_pending(c, room_id, staff_id, q_id, now_ms, sender: str | None = None, reply_created_ms: int | None = None):
+    """Resolve which open confirmation a yes/no refers to.
+    - `now_ms` is the receive time of the yes/no, the same clock the
+      question's lifetime was set on.
+    - `reply_created_ms` is when the yes/no was written (platform clock). A
+      question about a message written at or after that moment cannot be what
+      the yes/no answers, bare or with its Q id, so it is left alone.
+    - A question asked to another chat account is never answered by this one
+      (import_switch_links closes such questions when it relinks)."""
     live = open_pendings(c, room_id, staff_id, now_ms)
     if sender is not None:
         foreign = [r for r in live if r["asked_user"] is not None and r["asked_user"] != sender]
         live = [r for r in live if r not in foreign]
         if foreign and not live and (q_id is None or q_id in {r["q_id"] for r in foreign}):
             raise Rejected("CONFIRMATION_OTHER_ACCOUNT", q_id=q_id or foreign[0]["q_id"])
+    if reply_created_ms is not None:
+        later = [r for r in live if r["source_created_ms"] is not None and r["source_created_ms"] >= reply_created_ms]
+        live = [r for r in live if r not in later]
+        if later and (q_id in {r["q_id"] for r in later} or (q_id is None and not live)):
+            raise Rejected("CONFIRMATION_NEWER_THAN_REPLY", q_id=q_id or later[-1]["q_id"])
     if q_id:
         hit = [r for r in live if r["q_id"] == q_id]
         if not hit:
@@ -558,6 +585,39 @@ def pending_dep_current(c, room_id, pend) -> bool:
         return dep_for(c, room_id, pend["staff_id"], action) == json.loads(pend["dep_json"])
     except Rejected:
         return False
+
+
+# ---------------------------------------------------------------- unlinked senders
+
+def _clean_name(name: str) -> str:
+    return "".join(ch for ch in (name or "") if ch.isprintable())[:80]
+
+
+def note_unlinked(c, room_id, sender: str, name: str, now_ms: int):
+    """Remember that this transport sender wrote to the agent while not
+    linked, so the local admin can link the real id (never one typed from a
+    message body). Does not touch the room version or any domain state."""
+    prune_unlinked(c, room_id, now_ms)
+    c.execute("INSERT INTO unlinked_seen VALUES (?,?,?,?,?,1) ON CONFLICT(room_id, platform_user_id) DO UPDATE SET "
+              "display_name=excluded.display_name, last_ms=excluded.last_ms, seen_count=seen_count+1",
+              (room_id, sender, _clean_name(name), now_ms, now_ms))
+    c.execute("DELETE FROM unlinked_seen WHERE room_id=? AND platform_user_id NOT IN (SELECT platform_user_id FROM "
+              "unlinked_seen WHERE room_id=? ORDER BY last_ms DESC LIMIT ?)", (room_id, room_id, UNLINKED_SEEN_MAX))
+
+
+def prune_unlinked(c, room_id, now_ms):
+    c.execute("DELETE FROM unlinked_seen WHERE room_id=? AND last_ms < ?", (room_id, now_ms - UNLINKED_SEEN_TTL_MS))
+    c.execute("DELETE FROM unlinked_seen WHERE room_id=? AND platform_user_id IN "
+              "(SELECT platform_user_id FROM links WHERE room_id=?)", (room_id, room_id))
+
+
+def unlinked_seen(c, room_id, now_ms):
+    """Read-only view for status screens; rows past their lifetime are skipped."""
+    rows = c.execute("SELECT platform_user_id, display_name, first_ms, last_ms, seen_count FROM unlinked_seen "
+                     "WHERE room_id=? AND last_ms >= ? AND platform_user_id NOT IN "
+                     "(SELECT platform_user_id FROM links WHERE room_id=?) ORDER BY last_ms DESC",
+                     (room_id, now_ms - UNLINKED_SEEN_TTL_MS, room_id)).fetchall()
+    return [dict(r) for r in rows]
 
 
 # ---------------------------------------------------------------- watermark

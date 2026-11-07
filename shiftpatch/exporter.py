@@ -10,6 +10,7 @@ import os
 import re
 import time
 import uuid
+from datetime import date as _date, timedelta
 from pathlib import Path
 
 from . import engine
@@ -54,6 +55,15 @@ def _ics_escape(s: str) -> str:
     return s.replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,").replace("\n", "\\n")
 
 
+def ics_local(date: str, minute: int) -> str:
+    """Local DATE-TIME for minute 0..1440 of `date`. RFC 5545 hours run
+    00-23, so the end of day (24:00, minute 1440) is written as 00:00 of the
+    next calendar day; month and year ends roll over with the date."""
+    day = _date.fromisoformat(date) + timedelta(days=minute // 1440)
+    m = minute % 1440
+    return f"{day.strftime('%Y%m%d')}T{m // 60:02d}{m % 60:02d}00"
+
+
 def render_ics(snap, generated_ms):
     """Confirmed holdings only (original + confirmed replacements). Gaps and
     pending proposals are left out on purpose. No sync, a static file."""
@@ -65,12 +75,11 @@ def render_ics(snap, generated_ms):
         if sg["status"] not in ("original", "confirmed"):
             continue
         name = snap["names"].get(sg["staff_id"], ("?", "?"))[0]
-        d = rm["date"].replace("-", "")
         lines += ["BEGIN:VEVENT",
                   f"UID:{rm['room_id']}-v{snap['version']}-{sg['start']}-{sg['staff_id']}@shiftpatch.local",
                   f"DTSTAMP:{stamp}",
-                  f"DTSTART;TZID={rm['timezone']}:{d}T{sg['start'] // 60:02d}{sg['start'] % 60:02d}00",
-                  f"DTEND;TZID={rm['timezone']}:{d}T{sg['end'] // 60:02d}{sg['end'] % 60:02d}00",
+                  f"DTSTART;TZID={rm['timezone']}:{ics_local(rm['date'], sg['start'])}",
+                  f"DTEND;TZID={rm['timezone']}:{ics_local(rm['date'], sg['end'])}",
                   f"SUMMARY:{_ics_escape(name + ' · ' + rm['duty'])}",
                   f"DESCRIPTION:{_ics_escape(STATUS_KO[sg['status']] + ' · snapshot v' + str(snap['version']))}",
                   "END:VEVENT"]

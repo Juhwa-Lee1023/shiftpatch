@@ -23,7 +23,7 @@ from . import intervals as iv
 from .agent import Agent
 from .db import Store
 from .interpret import Interpreter
-from .local_demo import LocalDemoRoom
+from .local_demo import DemoRoomBusy, LocalDemoRoom, NotLocalDemo
 from .outbox import Dispatcher, delivery_view
 from .switch_bridge import SwitchBridge, SwitchConfig
 
@@ -111,7 +111,15 @@ class App:
                                                 ("no_server_url", self.switch_fields.get("base_url")),
                                                 ("no_agent_credential", self.switch_fields.get("api_key") and self.switch_fields.get("agent_id")),
                                                 ("no_room_id", self.switch_fields.get("room_id"))) if not ok]}
-        return self.bridge.status()
+        st = self.bridge.status()
+        with self.store.snapshot() as c:
+            now = self.bridge.clock()
+            st["unlinked_seen"] = [{"sender": r["platform_user_id"], "display_name": r["display_name"],
+                                    "times": r["seen_count"], "last_seen_ms": r["last_ms"]}
+                                   for r in engine.unlinked_seen(c, self.bridge.cfg.room_id, now)]
+            st["linked"] = [dict(r) for r in c.execute("SELECT staff_id, platform_user_id FROM links WHERE room_id=? "
+                                                       "ORDER BY staff_id", (self.bridge.cfg.room_id,))]
+        return st
 
 
 def _which(name):
@@ -299,8 +307,14 @@ def make_handler(app: App):
                         return self.err(404, "ROOM_NOT_FOUND")
                     try:
                         res = app.local.post(room_id, str(data.get("actor", "")), str(data.get("body", "")))
-                    except PermissionError as e:
+                    except NotLocalDemo as e:
                         return self.err(403, "LOCAL_DEMO_ONLY", detail=str(e))
+                    except DemoRoomBusy:
+                        return self.err(429, "DEMO_ROOM_BUSY")
+                    except PermissionError as e:
+                        # The message reached the agent but was not processed (e.g. its
+                        # execution context was no longer valid). Not an actor-picker refusal.
+                        return self.err(409, "MESSAGE_NOT_PROCESSED", detail=str(e))
                     app.dispatcher.run_once()
                     return self.ok(res)
                 if p == "/api/demo/reset":

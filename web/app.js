@@ -56,6 +56,9 @@
       room_notice: "로컬 합성 시연 방입니다. Switch 연결이 아니며, 한 사람이 같은 Mac에서 네 개의 가상 계정을 번갈아 조작합니다.",
       room_clock: "시연 시각(가상)", as: "보내는 사람", send: "보내기", script: "시연 순서",
       script_hint: "누르면 입력창에 채워집니다. 보내기는 직접 누르세요.",
+      script_ai_on: "AI 해석이 켜져 있습니다. 3번처럼 시간을 풀어 쓴 문장은 AI가 읽고 본인에게 먼저 확인합니다.",
+      script_ai_off: "AI 해석이 꺼져 있어 3번을 숫자로 시간을 적은 명령으로 바꿨습니다. AI가 읽어야 하는 4·8번은 건너뜁니다.",
+      sending: "보내는 중…",
       room_empty: "아직 대화가 없습니다. 오른쪽 시연 순서에서 첫 메시지를 골라 보세요.",
       room_restart: "서버를 다시 시작하면 대화 원문은 사라집니다. 원문은 디스크에 저장하지 않고, 구조화된 기록만 남겨요.",
       reset: "시연 초기화", reset_q: "시연 방의 근무표·기록·파일 목록을 모두 지우고 처음 상태로 돌릴까요?",
@@ -67,7 +70,7 @@
       imp_locked: "조율이 이미 시작돼 근무표를 다시 가져올 수 없습니다. 진행 중인 기록을 덮어쓰지 않기 위해서예요.",
       src: "원본", extracted: "읽어낸 표 (고칠 수 있어요)", mapping: "이름과 계정 연결",
       map_hint: "같은 이름이라도 자동으로 연결하지 않습니다. 계정을 고르고 확인 표시를 해 주세요. 역할은 관리자 설정에서 정해집니다.",
-      map_hint_switch: "목록의 ID는 이 Switch 방에서 해당 직원으로 행동할 참가자 ID입니다. manage.py import-links로 들여온 값이며 이 화면에서는 바꿀 수 없습니다.",
+      map_hint_switch: "목록의 ID는 이 Switch 방에서 해당 직원으로 행동할 참가자 ID입니다. 실제로 받은 메시지에서 확인한 값을 manage.py link로 연결하며, 이 화면에서는 바꿀 수 없습니다.",
       map_hint_local: "로컬 시연 방의 계정은 고정된 합성 계정(local:…)입니다. 실제 채팅 계정이 아닙니다.",
       map_none: "연결 안 함", map_ok: "확인함", map_unlinked: "Switch 계정 연결 없음",
       imp_into: "가져올 방",
@@ -130,6 +133,9 @@
       room_notice: "Local synthetic demo room. This is not a Switch connection: one person operates four synthetic accounts on one Mac.",
       room_clock: "Demo clock (synthetic)", as: "Sending as", send: "Send", script: "Demo script",
       script_hint: "Click to fill the input. You press Send yourself.",
+      script_ai_on: "AI reading is on. A line like 3, with the hours in words, is read by the AI and confirmed with the sender first.",
+      script_ai_off: "AI reading is off, so line 3 is the exact command with the hours. Lines 4 and 8 need the AI and are skipped.",
+      sending: "Sending…",
       room_empty: "No messages yet. Pick the first line from the demo script.",
       room_restart: "A server restart clears message text. Message bodies are not written to disk; only the structured record stays.",
       reset: "Reset demo", reset_q: "Clear the demo room's roster, history and file list?",
@@ -141,7 +147,7 @@
       imp_locked: "Coordination has started, so the roster cannot be imported again. Live records are never overwritten.",
       src: "Source", extracted: "Extracted table (editable)", mapping: "Names and accounts",
       map_hint: "Matching names are never linked automatically. Pick an account and tick to confirm. Roles come from the manager's settings.",
-      map_hint_switch: "The IDs listed are the Switch participants who will act as each person in this room. They come from manage.py import-links and cannot be changed here.",
+      map_hint_switch: "The IDs listed are the Switch participants who will act as each person in this room. Each was seen on a real message and linked with manage.py link; they cannot be changed here.",
       map_hint_local: "Local demo accounts are fixed synthetic accounts (local:…), not real chat accounts.",
       map_none: "not linked", map_ok: "confirmed", map_unlinked: "no Switch account linked",
       imp_into: "Importing into",
@@ -166,25 +172,27 @@
       DATE_YEAR_OR_FORMAT_NEEDS_REVIEW: "날짜에 연도가 없거나 형식이 다릅니다 (예: 2026-11-09)",
       DATE_NOT_ROOM_DATE: "이 방의 날짜(2026-11-09)와 다릅니다",
       START_NEEDS_EXPLICIT_24H_TIME: "시작 시각을 24시 표기로 (예: 13:00)", END_NEEDS_EXPLICIT_24H_TIME: "종료 시각을 24시 표기로 (예: 17:00)",
+      START_NOT_A_CLOCK_TIME: "시작 시각이 없는 시각입니다 (00:00–23:59, 분은 00–59)", END_NOT_A_CLOCK_TIME: "종료 시각이 없는 시각입니다 (00:00–24:00, 24시는 24:00만)",
       AMBIGUOUS_AM_PM: "오전·오후가 분명하지 않습니다", NON_POSITIVE_OR_OVERNIGHT: "종료가 시작보다 늦어야 합니다",
       NOT_30_MIN_BOUNDARY: "30분 단위가 아닙니다", DUTY_MISMATCH: "행마다 업무가 다릅니다 (한 업무만 지원)",
       UNMAPPED_NAME: "명단에 연결되지 않은 이름", MAPPING_NOT_CONFIRMED: "계정 연결을 확인하지 않았습니다",
       TWO_NAMES_ONE_ACCOUNT: "서로 다른 이름이 한 계정에 연결됐습니다", COLLISION: "다른 행과 시간이 겹칩니다",
       EMPTY_CELL: "빈 칸이 있습니다", OCR_SCORE_REVIEW_SIGNAL_NOT_ACCURACY: "인식 점수가 낮아 원본과 대조가 필요합니다",
       FORMULA_LIKE_TEXT: "수식처럼 보이는 글자 (내보낼 때 무력화)", NO_ROWS: "행이 없습니다",
-      STAFF_HAS_NO_SWITCH_ACCOUNT: "이 직원에게 연결된 Switch 계정이 없습니다 (manage.py import-links 먼저)",
+      STAFF_HAS_NO_SWITCH_ACCOUNT: "이 직원에게 연결된 Switch 계정이 없습니다 (그 사람이 방에서 한 번 보낸 뒤 manage.py senders → link)",
     },
     en: {
       DATE_YEAR_OR_FORMAT_NEEDS_REVIEW: "Date lacks a year or has another format (e.g. 2026-11-09)",
       DATE_NOT_ROOM_DATE: "Not this room's date (2026-11-09)",
       START_NEEDS_EXPLICIT_24H_TIME: "Start needs 24-hour time (e.g. 13:00)", END_NEEDS_EXPLICIT_24H_TIME: "End needs 24-hour time (e.g. 17:00)",
+      START_NOT_A_CLOCK_TIME: "Start is not a valid time (00:00–23:59, minutes 00–59)", END_NOT_A_CLOCK_TIME: "End is not a valid time (00:00–24:00; only 24:00 after 23:59)",
       AMBIGUOUS_AM_PM: "AM/PM is unclear", NON_POSITIVE_OR_OVERNIGHT: "End must be after start",
       NOT_30_MIN_BOUNDARY: "Not on a 30-minute boundary", DUTY_MISMATCH: "Rows have different duties (one duty supported)",
       UNMAPPED_NAME: "Name not linked to the staff list", MAPPING_NOT_CONFIRMED: "Account link not confirmed",
       TWO_NAMES_ONE_ACCOUNT: "Two names linked to one account", COLLISION: "Overlaps another row",
       EMPTY_CELL: "Empty cell", OCR_SCORE_REVIEW_SIGNAL_NOT_ACCURACY: "Low recognition score: compare with the source",
       FORMULA_LIKE_TEXT: "Looks like a formula (neutralised on export)", NO_ROWS: "No rows",
-      STAFF_HAS_NO_SWITCH_ACCOUNT: "No Switch account is linked to this person (run manage.py import-links first)",
+      STAFF_HAS_NO_SWITCH_ACCOUNT: "No Switch account is linked to this person (they send one message in the room, then manage.py senders → link)",
     },
   };
   const issueText = (c) => ISSUE[lang][c] || c;
@@ -293,7 +301,7 @@
       ? [["Minsu", "@ShiftPatch I might be unable to cover Monday 13-17."], ["ShiftPatch", "Minsu, should I mark Mon 11/9 13:00–17:00 unavailable? Reply yes or no.", 1],
          ["Jian", "@ShiftPatch available 13-15"], ["Taeo", "@ShiftPatch available 15-17"], ["ShiftPatch", "New proposal P2: Jian 13:00–15:00, Taeo 15:00–17:00. Jian: accept P2-a · Taeo: accept P2-b", 1]]
       : [["민수", "@ShiftPatch 월요일 13~17시 못 할 것 같아요"], ["ShiftPatch", "민수님, 11/9(월) 13:00–17:00을 '불가'로 기록할까요? 맞으면 `네`라고 답해 주세요.", 1],
-         ["지안", "@ShiftPatch 점심 먹고 두 시간은 돼요"], ["태오", "@ShiftPatch 가능 15-17"], ["ShiftPatch", "새 대체안 P2: 지안 13:00–15:00, 태오 15:00–17:00. 지안: 수락 P2-a · 태오: 수락 P2-b", 1]];
+         ["지안", "@ShiftPatch 가능 13-15"], ["태오", "@ShiftPatch 가능 15-17"], ["ShiftPatch", "새 대체안 P2: 지안 13:00–15:00, 태오 15:00–17:00. 지안: 수락 P2-a · 태오: 수락 P2-b", 1]];
     $view.replaceChildren(el("section", { class: "landing" },
       el("div", {},
         el("p", { class: "muted" }, t("land_kicker")),
@@ -499,21 +507,29 @@
     const confirmed = state.proposals.find((x) => x.state === "confirmed");
     const old = confirmed ? confirmed.proposal_id : pid;
     const en = lang === "en";
+    // With AI reading off, lines the AI would have read are replaced by the exact
+    // command (3) or skipped (4, 8), so the script alone still reaches the end.
+    const ai = !!(state.ai && state.ai.enabled);
     const L = (who, text, need) => [who, need === null ? null : text, need === null ? (en ? "after the proposal reply" : "대체안 답장이 온 뒤") : null];
+    const skip = (who, why) => [who, null, why];
+    const aiOnly = en ? "skipped: AI reading is off" : "건너뜀: AI 해석이 꺼져 있음";
+    const noQuestion = en ? "skipped: line 3 is already exact, no question to answer" : "건너뜀: 3번이 정확한 명령이라 확인 질문이 없음";
     if (en) return [
       L("minsu", "@ShiftPatch I might be unable to cover Monday 13-17"), L("minsu", "@ShiftPatch yes"),
-      L("jian", "@ShiftPatch I can do two hours after lunch"), L("jian", "@ShiftPatch yes"),
+      ai ? L("jian", "@ShiftPatch I can do two hours after lunch") : L("jian", "@ShiftPatch available 2026-11-09 13:00-15:00"),
+      ai ? L("jian", "@ShiftPatch yes") : skip("jian", noQuestion),
       L("taeo", "@ShiftPatch available 2026-11-09 15:00-17:00"),
       L("jian", `@ShiftPatch accept ${part("jian")}`, part("jian")), L("taeo", `@ShiftPatch accept ${part("taeo")}`, part("taeo")),
-      L("seoyeon", "@ShiftPatch both of them said yes"), L("seoyeon", `@ShiftPatch confirm ${pid}`, pid),
+      ai ? L("seoyeon", "@ShiftPatch both of them said yes") : skip("seoyeon", aiOnly), L("seoyeon", `@ShiftPatch confirm ${pid}`, pid),
       L("seoyeon", "@ShiftPatch export"), L("jian", "@ShiftPatch unavailable 2026-11-09 13:00-15:00"),
       L("seoyeon", `@ShiftPatch confirm ${old}`, old), L("seoyeon", "@ShiftPatch status")];
     return [
       L("minsu", "@ShiftPatch 월요일 13~17시 고객문의 응대 못 할 것 같아요"), L("minsu", "@ShiftPatch 네"),
-      L("jian", "@ShiftPatch 점심 먹고 두 시간은 돼요"), L("jian", "@ShiftPatch 네"),
+      ai ? L("jian", "@ShiftPatch 점심 먹고 두 시간은 돼요") : L("jian", "@ShiftPatch 가능 2026-11-09 13:00-15:00"),
+      ai ? L("jian", "@ShiftPatch 네") : skip("jian", noQuestion),
       L("taeo", "@ShiftPatch 가능 2026-11-09 15:00-17:00"),
       L("jian", `@ShiftPatch 수락 ${part("jian")}`, part("jian")), L("taeo", `@ShiftPatch 수락 ${part("taeo")}`, part("taeo")),
-      L("seoyeon", "@ShiftPatch 둘 다 된대요"), L("seoyeon", `@ShiftPatch 확정 ${pid}`, pid),
+      ai ? L("seoyeon", "@ShiftPatch 둘 다 된대요") : skip("seoyeon", aiOnly), L("seoyeon", `@ShiftPatch 확정 ${pid}`, pid),
       L("seoyeon", "@ShiftPatch 내보내기"), L("jian", "@ShiftPatch 불가 2026-11-09 13:00-15:00"),
       L("seoyeon", `@ShiftPatch 확정 ${old}`, old), L("seoyeon", "@ShiftPatch 표")];
   }
@@ -539,21 +555,28 @@
         staffName(a) + (a === "seoyeon" ? ` (${t("manager")})` : ""))));
     drawActors();
     const status = el("p", { class: "err small", role: "alert" });
+    const sendBtn = el("button", { class: "btn", type: "submit" }, t("send"));
+    let sending = false;
+    // One message at a time: Send stays disabled until the reply is back. The
+    // server also queues overlapping requests per room, so this is not the only guard.
     const send = async (ev) => {
       ev && ev.preventDefault();
       const body = input.value.trim();
-      if (!body || body === "@ShiftPatch") return;
-      status.textContent = "";
+      if (sending || !body || body === "@ShiftPatch") return;
+      sending = true; sendBtn.disabled = true; sendBtn.textContent = t("sending"); status.textContent = "";
       try { await api(`/api/demo/message?room=${encodeURIComponent(ROOM)}`, { method: "POST", json: { actor, body } }); input.value = "@ShiftPatch "; }
       catch (e) { status.textContent = e.message; }
-      await load(); patchLive("room");
+      finally {
+        await load().catch(() => {}); patchLive("room");
+        sending = false; sendBtn.disabled = false; sendBtn.textContent = t("send");
+      }
     };
     const log = el("div", { class: "log", id: "chatlog", "aria-live": "polite" }, ...chatItems());
     $view.replaceChildren(
       el("p", { class: "notice" }, t("room_notice"), " ", el("span", { class: "muted" }, `${t("room_clock")}: ${state.clock.label}`)),
       el("div", { class: "room" },
         el("section", { class: "chat" }, log,
-          el("form", { class: "compose", onsubmit: send }, actorBox, el("div", { class: "sendrow" }, input, el("button", { class: "btn", type: "submit" }, t("send"))), status)),
+          el("form", { class: "compose", onsubmit: send }, actorBox, el("div", { class: "sendrow" }, input, sendBtn), status)),
         el("aside", { id: "roomside" }, roomSide())));
     log.scrollTop = log.scrollHeight;
     window.__fill = (who, text) => { actor = who; drawActors(); input.value = text; input.focus(); };
@@ -567,6 +590,7 @@
         timeline(s),
         el("p", { class: "small muted" }, el("a", { href: "#/board" }, t("nav_board") + " →"))),
       el("section", { class: "panel" }, el("h3", {}, t("script")), el("p", { class: "small muted" }, t("script_hint")),
+        el("p", { class: "small", id: "script-mode" }, s.ai && s.ai.enabled ? t("script_ai_on") : t("script_ai_off")),
         el("ol", { class: "script" }, scriptLines().map(([who, text, later], i) => el("li", {}, el("span", { class: "n" }, i + 1),
           text ? el("button", { type: "button", onclick: () => window.__fill(who, text) }, `${staffName(who)}: ${text.replace("@ShiftPatch ", "")}`)
             : el("button", { type: "button", disabled: true }, `${staffName(who)}: ${later}`)))),
@@ -672,7 +696,7 @@
       } catch (e) { out.className = "err"; out.textContent = (e.data && e.data.issues ? e.data.issues.map(issueText).join(", ") : e.message); }
     });
     host.replaceChildren(el("section", { class: "panel stack" },
-      el("div", { class: "review" },
+      el("div", { class: srcBox ? "review" : "review single" },
         srcBox ? el("div", {}, el("h3", {}, t("src")), srcBox,
           el("p", { class: "small muted", style: "margin-top:8px" }, `${t("ocr_meta")}: ${d.engine || ""} · ${d.width}×${d.height}px · ${d.seconds}s. ${t("score_note")}`)) : null,
         el("div", {}, el("h3", {}, t("extracted")), grid,
@@ -715,7 +739,8 @@
           el("p", {}, el("span", { class: "tag warn" }, t("blocked")), " ", lang === "en" ? "This instance has no Switch configuration, so the bridge is off." : "이 인스턴스에는 Switch 설정이 없어 연결이 꺼져 있어요."),
           el("ul", {}, sw.reasons.map((r) => el("li", {}, reasons[r] || r))),
           el("p", { class: "small muted" }, lang === "en" ? "The adapter has run against a local self-hosted Switch 0.31 server with a synthetic team (qa/LIVE_SWITCH_REPORT.md). Setup steps: README › Switch." : "어댑터는 로컬 자체 호스팅 Switch 0.31 서버에서 합성 팀으로 실행해 봤어요(qa/LIVE_SWITCH_REPORT.md). 설정 방법은 README의 Switch 절에 있어요."))
-          : el("dl", { class: "kv" }, Object.entries(sw).map(([k, v]) => [el("dt", {}, k), el("dd", { class: "num" }, typeof v === "object" ? JSON.stringify(v) : String(v))]).flat())),
+          : el("dl", { class: "kv" }, Object.entries(sw).filter(([k]) => k !== "unlinked_seen" && k !== "linked").map(([k, v]) => [el("dt", {}, k), el("dd", { class: "num" }, typeof v === "object" ? JSON.stringify(v) : String(v))]).flat())),
+      sw.state === "BLOCKED" ? null : senderPanel(sw),
       el("section", { class: "panel" }, el("h2", {}, t("con_ai")),
         el("dl", { class: "kv" }, el("dt", {}, "status"), el("dd", {}, ai.enabled ? `${ai.engine} · ${ai.model_alias} · ${ai.status}` : (lang === "en" ? "unavailable — exact commands and rule-based questions still work" : "꺼짐 — 정확한 명령과 규칙 기반 확인 질문은 계속 동작")),
           el("dt", {}, lang === "en" ? "what it may do" : "할 수 있는 일"), el("dd", {}, lang === "en" ? "suggest one action for the sender; the sender must reply yes before anything changes" : "보낸 사람 본인의 행동 하나를 제안 — 본인이 `네`라고 답해야 반영"),
@@ -723,6 +748,27 @@
       el("section", { class: "panel" }, el("h2", {}, t("con_ocr")),
         el("p", {}, lang === "en" ? "Apple Vision VNRecognizeTextRequest via the local Swift helper (ocr/roster_ocr.swift). Five fixed columns, one date, one duty. Photos with perspective, handwriting and merged cells are not verified." : "로컬 Swift 보조 프로그램(ocr/roster_ocr.swift)의 Apple Vision VNRecognizeTextRequest. 다섯 열 고정, 한 날짜·한 업무. 기울어진 사진·손글씨·병합 셀은 검증하지 않았습니다.")),
       el("section", { class: "panel" }, el("h2", {}, t("con_data")), el("ul", {}, t("data_points").map((x) => el("li", {}, x))))));
+  }
+
+  // Who has written to the agent without being linked yet: the sender id exactly
+  // as Switch delivered it. Read-only here; linking is a local admin command.
+  function senderPanel(sw) {
+    const en = lang === "en";
+    const seen = sw.unlinked_seen || [], linked = sw.linked || [];
+    const who = (sid) => { const d = (state.staff || []).find((x) => x.staff_id === sid); return d ? (en ? d.display_name_en : d.display_name) : sid; };
+    return el("section", { class: "panel", id: "senders" },
+      el("h2", {}, en ? "Participant IDs" : "참가자 ID"),
+      el("p", { class: "small muted" }, en
+        ? "Each person sends one message to the agent in the Switch room (for example `status`). Their sender ID appears here as Switch delivered it; the message text is not kept. Link it on this Mac with the command shown. IDs are never guessed from another person's ID."
+        : "각 사람이 Switch 방에서 에이전트에게 메시지를 한 번 보내면(예: `표`) Switch가 보낸 발신자 ID가 여기에 그대로 나타납니다. 메시지 원문은 남기지 않습니다. 이 Mac에서 아래 명령으로 연결하세요. 다른 사람의 ID를 보고 짐작해 만들지 않습니다."),
+      seen.length ? el("table", { class: "senders" },
+        el("thead", {}, el("tr", {}, [en ? "Display name" : "표시 이름", en ? "Sender ID" : "발신자 ID", en ? "Last seen" : "마지막 수신", en ? "Link with" : "연결 명령"].map((h) => el("th", {}, h)))),
+        el("tbody", {}, seen.map((r) => el("tr", {}, el("td", {}, r.display_name || "—"), el("td", { class: "num id" }, r.sender),
+          el("td", { class: "num" }, clock(r.last_seen_ms)), el("td", { class: "num id" }, `python3 manage.py link '${r.sender}' <staff_id>`)))))
+        : el("p", { class: "muted" }, en ? "No unlinked sender in the last hour." : "최근 1시간 동안 연결되지 않은 발신자가 없습니다."),
+      el("h3", {}, en ? "Linked" : "연결됨"),
+      linked.length ? el("ul", {}, linked.map((l) => el("li", {}, `${who(l.staff_id)} (${l.staff_id}) · `, el("span", { class: "num id" }, l.platform_user_id))))
+        : el("p", { class: "muted" }, en ? "Nobody is linked yet." : "아직 연결된 사람이 없습니다."));
   }
 
   // ------------------------------------------------------------ boot

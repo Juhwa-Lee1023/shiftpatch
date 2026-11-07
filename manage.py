@@ -8,7 +8,15 @@ local demo room). Nothing here prints a credential.
       POST /agents/{id}/ops/update_agent_detail {"agent_id", "addressing"} so
       staff (not only the owner) can address the agent.
   python3 manage.py set-room <room_id>
-  python3 manage.py import-links links.json        {"@switch-user-…:server": "jian", …}
+  python3 manage.py senders
+      Lists Switch accounts that wrote to the agent while not linked: the
+      sender id exactly as Switch delivered it, the display name, when, and
+      how many times. Kept for one hour; the message text is never stored.
+  python3 manage.py link <sender id from `senders`> <staff_id>
+      Links one observed sender. An id that has not written to the agent in
+      this room is refused; ids are opaque and are never derived from another
+      account's id or a display name.
+  python3 manage.py import-links links.json        {"<sender id from senders>": "jian", …}
   python3 manage.py import-roster roster.csv mapping.json --approve
   python3 manage.py status
 """
@@ -16,6 +24,7 @@ import argparse
 import json
 import os
 import sys
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -24,6 +33,7 @@ APP = Path(__file__).resolve().parent
 sys.path.insert(0, str(APP))
 
 from shiftpatch import engine, roster  # noqa: E402
+from shiftpatch import intervals as iv  # noqa: E402
 from shiftpatch.db import Store  # noqa: E402
 from shiftpatch.switch_bridge import SwitchConfig  # noqa: E402
 
@@ -54,8 +64,10 @@ def post(url, body, bearer):
 
 
 def main():
+    global CFG
     ap = argparse.ArgumentParser()
     ap.add_argument("--data", default=str(APP / "data"))
+    ap.add_argument("--config", default=str(CFG), help="Switch config file (default: config/switch.local.json)")
     sub = ap.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("register-agent")
     r.add_argument("--base-url", required=True)
@@ -68,7 +80,12 @@ def main():
     ir.add_argument("mapping")
     ir.add_argument("--approve", action="store_true")
     sub.add_parser("status")
+    sub.add_parser("senders")
+    lk = sub.add_parser("link")
+    lk.add_argument("sender")
+    lk.add_argument("staff_id", choices=[d["staff_id"] for d in roster.DIRECTORY])
     a = ap.parse_args()
+    CFG = Path(a.config)
     cfg = load_cfg()
 
     if a.cmd == "register-agent":
@@ -113,14 +130,38 @@ def main():
                 n = c.execute("SELECT COUNT(*) FROM links WHERE room_id=?", (room_id,)).fetchone()[0]
             print(json.dumps({"room": dict(rm) if rm else None, "links": n}, indent=2))
         return
+    if a.cmd == "senders":
+        if not room_id:
+            sys.exit("run set-room first")
+        now = int(time.time() * 1000)
+        with store.snapshot() as c:
+            if c.execute("SELECT 1 FROM rooms WHERE room_id=?", (room_id,)).fetchone() is None:
+                sys.exit("no data for this room yet: start ShiftPatch once (python3 run.py) so it can hear the room")
+            seen = engine.unlinked_seen(c, room_id, now)
+            links = [dict(r) for r in c.execute("SELECT platform_user_id, staff_id FROM links WHERE room_id=? "
+                                                "ORDER BY staff_id", (room_id,))]
+        print(json.dumps({"room_id": room_id, "linked": links, "unlinked_seen": [
+            {"sender": r["platform_user_id"], "display_name": r["display_name"], "times": r["seen_count"],
+             "last_seen": iv.local_label(r["last_ms"], "Asia/Seoul")} for r in seen]}, ensure_ascii=False, indent=2))
+        if not seen:
+            print("No unlinked sender seen in the last hour. With ShiftPatch running, have each person send "
+                  "`@<agent name> 표` (or `status`) in the Switch room, then run this again.", file=sys.stderr)
+        return
     if not room_id:
         sys.exit("run set-room first")
     roster.create_room(store, room_id, "switch", "Switch room")
     try:
         if a.cmd == "import-links":
-            links = json.loads(Path(a.file).read_text())
+            links = {k: v for k, v in json.loads(Path(a.file).read_text()).items() if not k.startswith("_")}
+            if any(k.startswith("<") for k in links):
+                sys.exit("links file still has <placeholder> keys: copy the real sender ids from `manage.py senders`")
             res = roster.import_switch_links(store, room_id, links)
             print(f"linked {res['linked']} Switch participants")
+            if res["closed_questions"]:
+                print("closed open confirmation questions for relinked staff: " + ", ".join(res["closed_questions"]))
+        elif a.cmd == "link":
+            res = roster.link_observed_sender(store, room_id, a.sender, a.staff_id)
+            print(f"linked {a.sender} to {a.staff_id}; {res['linked']} Switch participants linked in this room")
             if res["closed_questions"]:
                 print("closed open confirmation questions for relinked staff: " + ", ".join(res["closed_questions"]))
         elif a.cmd == "import-roster":

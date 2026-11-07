@@ -14,7 +14,7 @@ import threading
 import time
 from dataclasses import dataclass
 
-HHMM = "^(?:[01][0-9]|2[0-4]):[0-5][0-9]$|^$"
+HHMM = "^(?:(?:[01][0-9]|2[0-3]):[0-5][0-9]|24:00)$|^$"
 SCHEMA = {
     "type": "object",
     "additionalProperties": False,

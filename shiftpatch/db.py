@@ -133,6 +133,7 @@ CREATE TABLE IF NOT EXISTS pending (
   state TEXT NOT NULL CHECK (state IN ('open','applied','declined','stale','superseded','expired')),
   created_ms INTEGER NOT NULL,
   asked_user TEXT,
+  source_created_ms INTEGER,
   PRIMARY KEY (room_id, q_id)
 );
 CREATE TABLE IF NOT EXISTS watermarks (
@@ -200,11 +201,24 @@ CREATE TABLE IF NOT EXISTS bridge_state (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL
 );
+-- Chat accounts that wrote to the agent before they were linked: the
+-- transport's sender id and display name only, never the message text.
+-- Rows expire after engine.UNLINKED_SEEN_TTL_MS and go away once linked.
+CREATE TABLE IF NOT EXISTS unlinked_seen (
+  room_id TEXT NOT NULL,
+  platform_user_id TEXT NOT NULL,
+  display_name TEXT NOT NULL,
+  first_ms INTEGER NOT NULL,
+  last_ms INTEGER NOT NULL,
+  seen_count INTEGER NOT NULL,
+  PRIMARY KEY (room_id, platform_user_id)
+);
 """
 
 # Columns added after the first release; ALTER TABLE keeps existing data files.
 MIGRATIONS = [
     ("pending", "asked_user", "TEXT"),
+    ("pending", "source_created_ms", "INTEGER"),
     ("outbox", "next_attempt_ms", "INTEGER NOT NULL DEFAULT 0"),
     ("outbox", "claim", "TEXT"),
     ("outbox", "claimed_until_ms", "INTEGER NOT NULL DEFAULT 0"),

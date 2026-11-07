@@ -85,7 +85,8 @@ class Agent:
         if link is None:
             text = ("이 계정은 아직 ShiftPatch 직원 명단과 연결되지 않아 아무것도 바꾸지 않았습니다. 관리자에게 연결을 요청해 주세요."
                     if lang == "ko" else "This account is not linked to the ShiftPatch staff list, so nothing changed. Ask the manager to link it.")
-            return self._reply_only(rm, msg_key, env, lang, text, status="unlinked", body_hash=body_hash)
+            return self._reply_only(rm, msg_key, env, lang, text, status="unlinked", body_hash=body_hash,
+                                    seen=env.source == "switch")
         staff_id = link["staff_id"]
         if rm["roster_version"] == 0:
             return self._reply_only(rm, msg_key, env, lang, render("ROSTER_NOT_READY", {}, lang, None, rm["date"]),
@@ -125,11 +126,14 @@ class Agent:
                       (msg_key, rm["room_id"], body_hash, json.dumps(result, ensure_ascii=False),
                        engine.room(c, rm["room_id"])["version"], 0))
 
-    def _reply_only(self, rm, msg_key, env, lang, text, status="replied", body_hash=None, record=True):
+    def _reply_only(self, rm, msg_key, env, lang, text, status="replied", body_hash=None, record=True, seen=False):
         if env.note:
             text = env.note + "\n" + text
         result = {"status": status, "reply": text}
         with self.store.tx() as c:
+            if seen:
+                # the transport's sender id and display name only; the message text is not kept
+                engine.note_unlinked(c, rm["room_id"], env.sender, env.sender_name, env.received_ms)
             if record:
                 c.execute("INSERT OR IGNORE INTO processed VALUES (?,?,?,?,?,?)",
                           (msg_key, rm["room_id"], body_hash or _sha(env.body), json.dumps(result, ensure_ascii=False),
@@ -253,8 +257,11 @@ class Agent:
 
     def _ack(self, c, rm, staff_id, msg_key, env, parsed, names, lang, out):
         room_id, date = rm["room_id"], rm["date"]
-        # Question lifetime runs on our receive clock; ordering (watermark below) stays on created_ms.
-        pend = engine.pick_pending(c, room_id, staff_id, parsed.q_id, env.received_ms, sender=env.sender)
+        # Question lifetime runs on our receive clock. Which question this reply can answer, and the
+        # watermark below, run on the platform's created_ms: a reply written before the message a
+        # question is about never approves or closes that question.
+        pend = engine.pick_pending(c, room_id, staff_id, parsed.q_id, env.received_ms, sender=env.sender,
+                                   reply_created_ms=env.created_ms)
         action = json.loads(pend["action_json"])
         if parsed.kind == "no":
             c.execute("UPDATE pending SET state='declined' WHERE room_id=? AND q_id=?", (room_id, pend["q_id"]))
@@ -263,7 +270,8 @@ class Agent:
         if not engine.pending_dep_current(c, room_id, pend):
             c.execute("UPDATE pending SET state='stale' WHERE room_id=? AND q_id=?", (room_id, pend["q_id"]))
             try:
-                q = engine.create_pending(c, room_id, staff_id, action, msg_key, env.received_ms, asked_user=env.sender)
+                q = engine.create_pending(c, room_id, staff_id, action, msg_key, env.received_ms, asked_user=env.sender,
+                                         source_created_ms=env.created_ms)
             except Rejected:
                 return ("확인하려던 내용의 조건이 바뀌어 더 이상 적용할 수 없습니다." if lang == "ko"
                         else "The facts behind that confirmation changed, so it can no longer be applied.")
@@ -352,7 +360,8 @@ class Agent:
                 return ("어느 구간인지 확실하지 않아요. `수락 P1-a`처럼 구간 번호를 넣어 보내 주세요." if ko
                         else "I am not sure which part you mean. Send e.g. `accept P1-a`.") + tag
             action["part_id"] = s.part_id
-        q = engine.create_pending(c, room_id, staff_id, action, msg_key, env.received_ms, asked_user=env.sender)
+        q = engine.create_pending(c, room_id, staff_id, action, msg_key, env.received_ms, asked_user=env.sender,
+                                         source_created_ms=env.created_ms)
         out.update(status="pending", pending=q)
         exp = iv.local_label(env.received_ms + engine.PENDING_TTL_MS, rm["timezone"]).split(" ")[1]
         return pending_question(action, q, names, lang, date, staff_id, exp) + tag

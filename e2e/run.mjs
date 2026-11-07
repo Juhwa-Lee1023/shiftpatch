@@ -60,6 +60,7 @@ function py(code) {
 const SW = "!e2e-switch:localhost";
 
 let exitCode = 0;
+const scriptRuns = {};
 try {
   await step("landing renders (ko + en)", async () => {
     await page.goto(BASE + "/");
@@ -250,6 +251,68 @@ try {
     if (res.status !== 403) throw new Error("actor picker reached a Switch room: HTTP " + res.status);
   });
 
+  // The room's own numbered script, AI off, clicked exactly as a first-time
+  // reviewer would: press the script line, press Send, repeat. No command is
+  // typed by the test; disabled lines are skipped only if the page marks them
+  // skipped. Ends at the split confirmation and Jian's 13–15 reopening.
+  async function runScriptAsShown(L) {
+    page.once("dialog", (d) => d.accept());
+    await page.goto(BASE + "/#/room");
+    await page.getByRole("button", { name: L.reset }).click();
+    await page.getByRole("button", { name: L.sample }).click();
+    await page.locator(".maprow").first().waitFor();
+    for (const cb of await page.locator(".maprow input[type=checkbox]").all()) { await cb.check(); await page.waitForTimeout(150); }
+    await page.locator("#approve").check();
+    await page.getByRole("button", { name: L.approve }).click();
+    await page.getByText(L.noGap).first().waitFor();
+    await page.goto(BASE + "/#/room");
+    await page.locator("#msg").waitFor();
+    expectIn(await page.locator("#script-mode").innerText(), L.modeOff, "script says AI is off");
+    const log = [];
+    const total = await page.locator(".script li").count();
+    if (total !== 13) throw new Error("script has " + total + " lines");
+    for (let i = 0; i < total; i++) {
+      const btn = page.locator(".script li").nth(i).locator("button");
+      const label = await btn.innerText();
+      if (await btn.isDisabled()) {
+        if (!label.includes(L.skipped)) throw new Error(`line ${i + 1} is disabled but not marked skipped: ${label}`);
+        log.push({ line: i + 1, skipped: label });
+        continue;
+      }
+      await btn.click();
+      const text = await page.inputValue("#msg");
+      const n = await page.locator(".bubble.agent").count();
+      await page.getByRole("button", { name: L.send, exact: true }).click();
+      await page.waitForFunction((k) => document.querySelectorAll(".bubble.agent").length > k, n, { timeout: 15000 });
+      await page.getByRole("button", { name: L.send, exact: true }).waitFor();          // Send is back (not "Sending…")
+      log.push({ line: i + 1, sent: text, reply: (await page.locator(".bubble.agent .tx").last().innerText()).slice(0, 200) });
+    }
+    const skipped = log.filter((x) => x.skipped).map((x) => x.line);
+    if (JSON.stringify(skipped) !== "[4,8]") throw new Error("skipped lines " + JSON.stringify(skipped));
+    expectIn(log[11].reply, L.oldRefused, "line 12: earlier plan cannot be confirmed again");
+    await page.goto(BASE + "/#/board");
+    await page.locator(".banner.gap").getByText(L.gap).waitFor();
+    expectIn(await page.locator(".prop.confirmed .reopened").innerText(), L.badge, "reopened badge");
+    const rows = await page.locator("table tbody tr").evaluateAll((rs) => rs.map((r) => r.innerText.replace(/\s+/g, " ").trim()));
+    if (JSON.stringify(rows) !== JSON.stringify(L.rows)) throw new Error("rows " + JSON.stringify(rows));
+    return log;
+  }
+  await step("AI off: the room's own Korean script, clicked line by line, reaches split confirm and reopens only Jian 13–15", async () => {
+    scriptRuns.ko = await runScriptAsShown({ reset: "시연 초기화", sample: "합성 예시 CSV로 시작", approve: "초기 근무표 등록",
+      noGap: "빈 시간이 없습니다", modeOff: "AI 해석이 꺼져", skipped: "건너뜀", send: "보내기", oldRefused: "앞서 확정됐습니다",
+      gap: "13:00–15:00 담당자가 없습니다", badge: "앞서 확정 · 13:00–15:00 다시 모집",
+      rows: ["09:00–13:00 지안 원 근무", "13:00–15:00 — 미해결", "15:00–17:00 태오 대체 확정", "17:00–18:00 태오 원 근무"] });
+    await shot("14-room-script-ai-off-ko.png", false);
+  });
+  await step("AI off: the same script in English reaches the same result", async () => {
+    await page.getByRole("button", { name: "English" }).click();
+    scriptRuns.en = await runScriptAsShown({ reset: "Reset demo", sample: "Start with the synthetic CSV", approve: "Import initial roster",
+      noGap: "No gaps", modeOff: "AI reading is off", skipped: "skipped", send: "Send", oldRefused: "confirmed earlier",
+      gap: "13:00–15:00 has nobody assigned", badge: "confirmed earlier · 13:00–15:00 reopened",
+      rows: ["09:00–13:00 Jian original", "13:00–15:00 — uncovered", "15:00–17:00 Taeo confirmed", "17:00–18:00 Taeo original"] });
+    await page.getByRole("button", { name: "한국어" }).click();
+  });
+
   await step("narrow viewport and connection page", async () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(BASE + "/#/board");
@@ -282,6 +345,7 @@ const shutdown = { exit: exited, stopped_line: serverOut.includes("ShiftPatch st
 if (exited.code !== 0 || !shutdown.stopped_line || unexpected.length) exitCode = 1;
 const result = { at: new Date().toISOString(), command: "node e2e/run.mjs", browser: "system Google Chrome via Playwright channel=chrome (headless)",
   ai: "off (SHIFTPATCH_AI=off) for determinism", port: PORT, duration_ms: Date.now() - t0, exit_code: exitCode, steps, console_errors: consoleErrors,
+  script_runs: scriptRuns,
   server_shutdown: shutdown };
 writeFileSync(path.join(APP, "qa", "e2e-result.json"), JSON.stringify(result, null, 2) + "\n");
 console.log(JSON.stringify({ exit_code: exitCode, passed: steps.filter((s) => s.ok).length, failed: steps.filter((s) => !s.ok),
