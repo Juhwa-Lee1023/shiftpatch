@@ -1,5 +1,9 @@
 # Live Switch run — local self-hosted, synthetic team
 
+## Connect and shut down after the cleanup fixes: 2026-11-07, 19:24 KST
+
+Commit `9dd3a1b` changed how the Switch connection is closed, so the server process was started once more against the same local Switch: agent `shiftpatch2`, a new empty data directory, port 8797, AI off. No message was sent and nothing was posted; the stream opened at "head". The bridge was connected after 4.1 s, covered the room and answered 4 pings. On SIGTERM it stopped in 0.01 s with exit 0 and `ShiftPatch stopped`. With ResourceWarnings switched on, stderr held only request lines. The demo instance on 8766 was read before and after: connected, 0 reconnects. The message flow below was not repeated on this commit.
+
 ## Source after the review fixes: checked 2026-11-07, about 18:35–18:39 KST
 
 This run used the source after the 2026-11-07 review fixes (worktree commit `c65b2ec` plus the `manage.py set-addressing` exit-code change, which the server process does not load). It ran next to the earlier demo without touching it: a new agent `shiftpatch2`, a new private room, a new data directory and ShiftPatch on 127.0.0.1:8786. The earlier instance on 8766 stayed connected with 0 reconnects.

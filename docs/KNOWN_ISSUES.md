@@ -1,6 +1,6 @@
 # Scope and remaining work
 
-Updated 2026-11-07 evening, after the review fixes. Live check: [qa/LIVE_SWITCH_REPORT.md](../qa/LIVE_SWITCH_REPORT.md). Tests: [qa/TEST_REPORT.md](../qa/TEST_REPORT.md).
+Updated 2026-11-07 evening, after the review fixes and the socket/thread cleanup. Live check: [qa/LIVE_SWITCH_REPORT.md](../qa/LIVE_SWITCH_REPORT.md). Tests: [qa/TEST_REPORT.md](../qa/TEST_REPORT.md).
 
 ## Current scope
 
@@ -17,6 +17,7 @@ Updated 2026-11-07 evening, after the review fixes. Live check: [qa/LIVE_SWITCH_
 - Malformed frames, a non-integer sequence or cursor, and 15 silent seconds trigger a reconnect from the processed cursor. These, reconnect, gap, eviction and handler-failure halt are tested against fake sockets and the contract double only. None was triggered on a live server.
 - A message that fails five times halts the bridge before its sequence is acknowledged. Restart ShiftPatch to replay it; there is no button for this.
 - An export interrupted by a stopped process gets a closing "did not finish, send export again" reply at the next start. The export itself is not retried automatically.
+- On Ctrl-C or SIGTERM a reply that is being sent gets up to 15 s. If it is still running, the stop line says so and the process exits anyway; that reply follows the at-least-once rule above.
 
 ## Setup
 

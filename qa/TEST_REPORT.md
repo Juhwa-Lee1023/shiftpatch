@@ -2,6 +2,30 @@
 
 Machine: macOS (Darwin 27), Python 3.14.5, Node 24.19, Google Chrome via Playwright 1.56.1 `channel: "chrome"`, Apple Vision via `swift`.
 
+## Socket and thread cleanup (2026-11-07, 19:00–19:25 KST)
+
+The 125-test runs below passed, but their logs also printed ResourceWarnings: twelve `Implicitly cleaning up <HTTPError …>` and, during the R02 test, two `unclosed <socket.socket …>`. A run with `-X tracemalloc` traced each one to where it was allocated. Every socket was the fake Switch's listening socket (`tests/fake_switch.py` called `shutdown()` but never `server_close()`), and every HTTPError came from `tests/test_http.py` reading an error body without closing it. The `agent.py:184` in the old log is only where garbage collection happened to run.
+
+The same patterns were in production code, plus two more. Fixed in `9dd3a1b`:
+
+- `switch_bridge._http` and `manage.post` close HTTPError bodies.
+- `WebSocket.connect` closes its socket when the handshake fails. Before, every retried failed handshake left a socket for the garbage collector.
+- The bridge's reader thread owns the WebSocket and closes it; `stop()` and the halt path only send a close frame and shut the connection down. With the old cross-thread `close()`, the reader stayed blocked in `recv` in 5 of 6 start/stop cycles in one process on this Mac. With the change, 12 of 12 cycles stopped at once.
+- `SwitchBridge.stop` and `Dispatcher.stop` join their threads and return whether they finished. `run.py` now closes its listening socket and both threads on SIGTERM or Ctrl-C, then prints `ShiftPatch stopped`.
+
+| Command (HEAD `9dd3a1b`) | Exit | Duration | Result |
+|---|---|---|---|
+| `python3 -m unittest discover -s tests -v` | 0 | 37.0 s | **136 tests OK**, no warning line on stdout or stderr |
+| same with `-X dev -X tracemalloc=30 -W always::ResourceWarning` | 0 | 55.9 s | 136 OK, no warning line |
+| same with `-X dev -W error::ResourceWarning` | 0 | 35.0 s | 136 OK, no `Exception ignored` line |
+| the 37 socket/thread tests, `-X dev -W always::ResourceWarning`, three times | 0, 0, 0 | 29–30 s each | 37 OK each time, no warning line |
+| `node e2e/run.mjs` | 0 | 11.0 s | **13/13 steps**; server exit 0 on SIGTERM, `ShiftPatch stopped`, stderr only request lines (ResourceWarnings on) |
+| live smoke check: `run.py` with a new data dir connected to local Switch 0.31.0 as `shiftpatch2`, then SIGTERM | 0 | 8 s | connected in 4.1 s, 4 pings answered, nothing posted, stopped in 0.01 s, no stderr warnings; the demo instance on 8766 stayed connected with 0 reconnects |
+
+The new file `tests/test_resource_cleanup.py` (11 tests) checks the resource itself: the socket fd after a refused upgrade, a wrong accept header and an early close; the HTTPError body after a 401 in `post_reply` and `manage.post`; the fixture's listening socket; that `stop()` joins and closes, including a reader blocked with no read timeout; that `App.close()` ends every thread; and that `run.py`, connected to the contract double, exits 0 on SIGTERM with nothing on stderr but request lines. Run against the pre-fix modules, 10 of the 11 fail. The fixture test passes there because the fixture stays fixed. The contract and app-wiring tests now assert in tearDown that `stop()` finished.
+
+A Python warning is not proof of a production leak, and its absence is not proof there is none. These runs show only that this suite and the E2E no longer leave sockets, error bodies or threads for the garbage collector.
+
 ## After the review fixes (2026-11-07, about 18:30–18:50 KST)
 
 Run from the repository root. Receipts with command, start time, duration, exit code and git HEAD are in the remediation folder's `deliverables/evidence/`.

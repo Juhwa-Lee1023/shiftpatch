@@ -1,71 +1,71 @@
 {
-  "at": "2026-11-07T10:17:53.303Z",
+  "at": "2026-11-07T10:23:23.014Z",
   "command": "node e2e/run.mjs",
   "browser": "system Google Chrome via Playwright channel=chrome (headless)",
   "ai": "off (SHIFTPATCH_AI=off) for determinism",
-  "port": 8855,
-  "duration_ms": 13079,
+  "port": 8803,
+  "duration_ms": 10773,
   "exit_code": 0,
   "steps": [
     {
       "name": "landing renders (ko + en)",
       "ok": true,
-      "ms": 395
+      "ms": 280
     },
     {
       "name": "OCR: ambiguous synthetic image is flagged and import stays blocked",
       "ok": true,
-      "ms": 2947
+      "ms": 916
     },
     {
       "name": "OCR: unsupported layout falls back to CSV/manual",
       "ok": true,
-      "ms": 818
+      "ms": 799
     },
     {
       "name": "OCR: clear image → confirm account links → explicit approval → board",
       "ok": true,
-      "ms": 1515
+      "ms": 1513
     },
     {
       "name": "chat: tentative inability asks first, then yes opens 13–17",
       "ok": true,
-      "ms": 218
+      "ms": 222
     },
     {
       "name": "chat: invalid clock time and ranged withdrawal change only what was asked",
       "ok": true,
-      "ms": 302
+      "ms": 300
     },
     {
       "name": "chat: availability, proposal, self acceptance, proxy refused, manager confirms",
       "ok": true,
-      "ms": 764
+      "ms": 748
     },
     {
       "name": "board + CSV show the same confirmed coverage",
       "ok": true,
-      "ms": 334
+      "ms": 222
     },
     {
       "name": "after confirmation Jian drops 13–15: only that interval reopens, old plan cannot re-confirm",
       "ok": true,
-      "ms": 484
+      "ms": 495
     },
     {
       "name": "board: an undelivered reply is shown and sent again without changing the record",
       "ok": true,
-      "ms": 2329
+      "ms": 2303
     },
     {
       "name": "Switch room review lists the linked participant IDs and blocks an unlinked person",
       "ok": true,
-      "ms": 1476
+      "ms": 1417
     },
     {
       "name": "narrow viewport and connection page",
       "ok": true,
-      "ms": 107
+      "ms": 116
     },
     {
       "name": "no browser console errors",
