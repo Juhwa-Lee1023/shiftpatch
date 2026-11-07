@@ -241,6 +241,13 @@ class Store:
             for table, col, decl in MIGRATIONS:
                 if col not in {r["name"] for r in c.execute(f"PRAGMA table_info({table})")}:
                     c.execute(f"ALTER TABLE {table} ADD COLUMN {col} {decl}")
+            # An open confirmation question written before source_created_ms existed has no
+            # record of when its message was written, so no yes/no can be matched to it safely.
+            # Close it (state 'stale'); its action was never applied. Nothing else is touched:
+            # confirmed coverage, history, versions and other rooms stay as they are. The time
+            # is not guessed from the receive time.
+            self.legacy_questions_closed = c.execute(
+                "UPDATE pending SET state='stale' WHERE state='open' AND source_created_ms IS NULL").rowcount
         finally:
             c.close()
 

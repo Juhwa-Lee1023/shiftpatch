@@ -550,7 +550,8 @@ def pick_pending(c, room_id, staff_id, q_id, now_ms, sender: str | None = None, 
       question's lifetime was set on.
     - `reply_created_ms` is when the yes/no was written (platform clock). A
       question about a message written at or after that moment cannot be what
-      the yes/no answers, bare or with its Q id, so it is left alone.
+      the yes/no answers, bare or with its Q id, so it is left alone. A
+      question with no source time is refused for any yes/no (see below).
     - A question asked to another chat account is never answered by this one
       (import_switch_links closes such questions when it relinks)."""
     live = open_pendings(c, room_id, staff_id, now_ms)
@@ -559,8 +560,16 @@ def pick_pending(c, room_id, staff_id, q_id, now_ms, sender: str | None = None, 
         live = [r for r in live if r not in foreign]
         if foreign and not live and (q_id is None or q_id in {r["q_id"] for r in foreign}):
             raise Rejected("CONFIRMATION_OTHER_ACCOUNT", q_id=q_id or foreign[0]["q_id"])
+    # A question without a source time (written before the upgrade, or by an older copy of
+    # this program against the same file) cannot be ordered against the reply, so it is never
+    # answered, bare or by its Q id. Store() closes such rows when it opens the file; this
+    # covers a row that appears while running.
+    legacy = [r for r in live if r["source_created_ms"] is None]
+    if legacy and (q_id is None or q_id in {r["q_id"] for r in legacy}):
+        raise Rejected("LEGACY_CONFIRMATION", q_id=q_id or legacy[0]["q_id"])
+    live = [r for r in live if r not in legacy]
     if reply_created_ms is not None:
-        later = [r for r in live if r["source_created_ms"] is not None and r["source_created_ms"] >= reply_created_ms]
+        later = [r for r in live if r["source_created_ms"] >= reply_created_ms]
         live = [r for r in live if r not in later]
         if later and (q_id in {r["q_id"] for r in later} or (q_id is None and not live)):
             raise Rejected("CONFIRMATION_NEWER_THAN_REPLY", q_id=q_id or later[-1]["q_id"])

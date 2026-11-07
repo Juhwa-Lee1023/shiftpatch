@@ -5,6 +5,7 @@ fake interpreter, the local HTTP server, and the Switch contract double
 (tests/fake_switch.py). None of it is a live Switch run."""
 import concurrent.futures
 import json
+import sqlite3
 import os
 import subprocess
 import sys
@@ -23,6 +24,7 @@ from harness import MAPPING, MIN, ROWS, T0, Base
 from shiftpatch import engine, exporter, roster
 from shiftpatch import intervals as iv
 from shiftpatch.agent import Agent
+from shiftpatch.db import Store
 from shiftpatch.interpret import Interpreter, Suggestion
 from shiftpatch.local_demo import DemoRoomBusy, LocalDemoRoom
 from shiftpatch.server import App, make_handler
@@ -149,16 +151,6 @@ class OutOfOrderQuestions(Base):
         self.assertEqual(r.get("code"), "INABILITY_RECORDED", r)
         self.assertEqual(r["via"], "Q1")
 
-    def test_question_rows_from_before_the_upgrade_are_still_answerable(self):
-        """Rows written before source_created_ms existed have NULL there and
-        keep the old behaviour (answerable by a later yes)."""
-        t = self.t
-        q = self.agent.handle(self.env("minsu", "@ShiftPatch 13~17시 못 할 것 같아요", at=t, received=t, mid="A"))
-        with self.store.tx() as c:
-            c.execute("UPDATE pending SET source_created_ms=NULL WHERE q_id=?", (q["pending"],))
-        r = self.agent.handle(self.env("minsu", "@ShiftPatch 네", at=t + MIN, received=t + MIN, mid="ack"))
-        self.assertEqual(r["code"], "INABILITY_RECORDED")
-
     def test_lifetime_still_runs_on_receive_time_and_order_on_message_time(self):
         created = T0 + 30 * MIN
         q = self.agent.handle(self.env("minsu", "@ShiftPatch 13~17시 못 할 것 같아요", at=created,
@@ -169,6 +161,100 @@ class OutOfOrderQuestions(Base):
         self.assertEqual(row["source_created_ms"], created)
         self.assertEqual(row["created_ms"], created + 14 * MIN)
         self.assertEqual(row["expires_ms"], created + 14 * MIN + engine.PENDING_TTL_MS)
+
+
+class LegacyQuestions(Base):
+    """A question written before `source_created_ms` existed has no message
+    time. ROOT_LEGACY_PENDING_CHECK: with Q2's source time NULL, an old yes
+    written between Q1 and Q2 applied Q2 (version 1 -> 2, gap 15-16). Such a
+    question is never answered now, and Store() closes it when it opens the
+    file. Nothing else in the file changes."""
+
+    def setUp(self):
+        super().setUp()
+        self.import_roster()
+        t = self.t
+        self.agent.handle(self.env("minsu", "@ShiftPatch 13~14시 못 할 것 같아요", at=t, received=t, mid="A"))
+        self.q2 = self.agent.handle(self.env("minsu", "@ShiftPatch 15~16시 못 할 것 같아요", at=t + 2 * MIN,
+                                             received=t + 2 * MIN, mid="B"))["pending"]
+        self.t0 = t
+
+    def null_source(self, q_id):
+        with self.store.tx() as c:
+            c.execute("UPDATE pending SET source_created_ms=NULL WHERE q_id=?", (q_id,))
+
+    def state_of(self, q_id):
+        with self.store.snapshot() as c:
+            return c.execute("SELECT state FROM pending WHERE q_id=?", (q_id,)).fetchone()["state"]
+
+    def test_root_repro_old_yes_does_not_apply_a_question_without_source_time(self):
+        self.null_source(self.q2)
+        v = self.version()
+        r = self.agent.handle(self.env("minsu", "@ShiftPatch yes", at=self.t0 + MIN, received=self.t0 + 3 * MIN, mid="old"))
+        self.assertEqual(r.get("code"), "LEGACY_CONFIRMATION", r)
+        self.assertEqual((self.version(), self.board()["gaps"]), (v, []))
+        self.assertEqual(self.state_of(self.q2), "open")      # not approved, not declined
+
+    def test_no_yes_or_no_answers_it_even_written_later_or_with_its_q_id(self):
+        self.null_source(self.q2)
+        v = self.version()
+        for i, body in enumerate(("@ShiftPatch 네", "@ShiftPatch 아니요", f"@ShiftPatch yes {self.q2}", f"@ShiftPatch no {self.q2}")):
+            with self.subTest(body=body):
+                at = self.t0 + (4 + i) * MIN                     # written after the question
+                r = self.agent.handle(self.env("minsu", body, at=at, received=at, mid=f"r{i}"))
+                self.assertEqual(r.get("code"), "LEGACY_CONFIRMATION", r)
+                self.assertIn(self.q2, r["reply"])
+        self.assertEqual((self.version(), self.board()["gaps"], self.state_of(self.q2)), (v, [], "open"))
+
+    def test_sending_the_message_again_gives_a_normal_question(self):
+        self.null_source(self.q2)
+        at = self.t0 + 5 * MIN
+        q = self.agent.handle(self.env("minsu", "@ShiftPatch 15~16시 못 할 것 같아요", at=at, received=at, mid="again"))
+        self.assertEqual(q["status"], "pending")
+        self.assertEqual(self.state_of(self.q2), "superseded")
+        r = self.agent.handle(self.env("minsu", "@ShiftPatch 네", at=at + MIN, received=at + MIN, mid="yes"))
+        self.assertEqual((r.get("code"), r.get("via")), ("INABILITY_RECORDED", q["pending"]))
+        self.assertEqual(self.board()["gaps"], [(900, 960)])
+
+    def test_opening_a_pre_upgrade_file_closes_its_open_questions_and_keeps_everything_else(self):
+        """A real migration: the pending table is turned back into the
+        3ca97d6 schema (no source_created_ms column), with a confirmed
+        replacement, history and an open question in the file, then opened
+        with Store()."""
+        self.tearDown()
+        self.setUp_plain()
+        pid, parts, _ = self.main_trace_to_confirm()
+        q = self.agent.handle(self.env("taeo", "@ShiftPatch 17~18시 못 할 것 같아요", mid="legacy-q"))["pending"]
+        with self.store.tx() as c:
+            c.execute("ALTER TABLE pending DROP COLUMN source_created_ms")
+        db = self.dir / "t.db"
+
+        def dump():
+            c = sqlite3.connect(db)
+            try:
+                return {t: c.execute(f"SELECT * FROM {t} ORDER BY 1").fetchall() for t in
+                        ("rooms", "assignments", "acceptances", "history", "availability", "inability", "links", "processed")}
+            finally:
+                c.close()
+        before = dump()
+        reopened = Store(db)
+        self.assertEqual(reopened.legacy_questions_closed, 1)
+        self.store = reopened
+        self.agent = Agent(self.store, None)
+        with self.store.snapshot() as c:
+            cols = {r["name"] for r in c.execute("PRAGMA table_info(pending)")}
+            row = c.execute("SELECT state, source_created_ms FROM pending WHERE q_id=?", (q,)).fetchone()
+        self.assertIn("source_created_ms", cols)
+        self.assertEqual((row["state"], row["source_created_ms"]), ("stale", None))   # closed, time not invented
+        self.assertEqual(dump(), before)
+        v = self.version()
+        r = self.say("taeo", "@ShiftPatch 네")
+        self.assertEqual(r.get("code"), "NO_OPEN_CONFIRMATION", r)
+        self.assertEqual(self.version(), v)
+        self.assertEqual(Store(db).legacy_questions_closed, 0)                          # second open: nothing left
+
+    def setUp_plain(self):
+        Base.setUp(self)
 
 
 # --------------------------------------------------------------------- 2

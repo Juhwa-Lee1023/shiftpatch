@@ -197,6 +197,8 @@ def render(code: str, info: dict, lang: str, names: Names, date: str, actor: str
         "CONFIRMATION_NOT_OPEN": (f"{info.get('q_id')} 확인은 이미 닫혔습니다.", f"Confirmation {info.get('q_id')} is closed."),
         "CONFIRMATION_NEWER_THAN_REPLY": (f"이 답장은 {info.get('q_id')} 질문의 바탕이 된 메시지보다 먼저 쓴 것이라 {info.get('q_id')}에 적용하지 않았습니다. 아무것도 바뀌지 않았어요. {info.get('q_id')}에 답하려면 `네 {info.get('q_id')}` 또는 `아니요 {info.get('q_id')}`를 새로 보내 주세요.",
                                           f"This reply was written before the message behind {info.get('q_id')}, so it was not applied to {info.get('q_id')}. Nothing changed. To answer {info.get('q_id')}, send `yes {info.get('q_id')}` or `no {info.get('q_id')}` now."),
+        "LEGACY_CONFIRMATION": (f"{info.get('q_id')} 확인은 업데이트 전에 만든 질문이라 원래 메시지를 쓴 시각을 알 수 없습니다. 그래서 이 답장을 적용하지 않았고 아무것도 바뀌지 않았어요. 아직 필요하면 처음 메시지를 다시 보내 주세요.",
+                                f"{info.get('q_id')} was asked before an update, so the time of its original message is unknown. This reply was not applied and nothing changed. If it still applies, send the original message again."),
         "NEWER_QUESTION_OPEN": (f"이 메시지보다 나중에 쓴 메시지로 {josa(str(info.get('q_id')), '이/가')} 이미 열려 있어 새 질문을 만들지 않았습니다. 아무것도 바뀌지 않았어요. {info.get('q_id')}에 답하거나 지금 상황에 맞게 다시 보내 주세요.",
                                 f"{info.get('q_id')} is already open from a message you wrote later than this one, so no new question was made. Nothing changed. Answer {info.get('q_id')}, or send this again if it still applies."),
         "ROSTER_NOT_READY": ("아직 초기 근무표가 등록되지 않았습니다. 관리자가 로컬 설정 화면에서 먼저 등록해야 해요.",

@@ -393,6 +393,9 @@ def main(argv=None):
     ap.add_argument("--switch-config", default=str(APP / "config" / "switch.local.json"))
     a = ap.parse_args(argv)
     app = App(Path(a.data), a.port, switch_config=Path(a.switch_config))
+    if app.store.legacy_questions_closed:
+        print(f"Closed {app.store.legacy_questions_closed} open confirmation question(s) from before the upgrade "
+              "(their message time is unknown); nothing they asked about was applied.", flush=True)
     app.start_background()
     srv = ThreadingHTTPServer(("127.0.0.1", a.port), make_handler(app))
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
