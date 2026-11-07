@@ -1,10 +1,18 @@
 {
-  "at": "2026-11-07T09:49:20.227Z",
+  "at": "2026-11-07T12:27:23.650Z",
   "command": "node e2e/ai_trace.mjs",
   "ai": "on (local Claude CLI login)",
-  "duration_ms": 15207,
+  "duration_ms": 16113,
   "exit_code": 0,
   "replies": [
+    {
+      "check": "AI-on script shown",
+      "mode": "AI 해석이 켜져 있습니다. 3번처럼 시간을 풀어 쓴 문장은 AI가 읽고 본인에게 먼저 확인합니다.",
+      "line3": "지안: 점심 먹고 두 시간은 돼요",
+      "line4": "지안: 네",
+      "line8": "서연: 둘 다 된대요",
+      "ok": true
+    },
     {
       "actor": "민수",
       "text": "@ShiftPatch 월요일 13~17시 고객문의 응대 못 할 것 같아요",

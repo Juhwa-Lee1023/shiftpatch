@@ -2,6 +2,34 @@
 
 Machine: macOS (Darwin 27), Python 3.14.5, Node 24.19, Google Chrome via Playwright 1.56.1 `channel: "chrome"`, Apple Vision via `swift`.
 
+## Six fixes from the final three-model review (2026-11-07, 20:44–21:30 KST)
+
+Code commits `a70ae7e` (the six fixes) and `9325ac3` (final code: history label for first links, table style, one more test). Receipts (argv, KST start and finish, duration, exit code, HEAD, warning lines found) are in the task folder `desktop-six-fixes-20261107T114207Z/evidence/`. Final-commit reruns are listed in that folder's `FINAL_REPORT.md`.
+
+| Command | HEAD | Exit | Duration | Result |
+|---|---|---|---|---|
+| `python3 -m unittest discover -s tests -v` | `9325ac3` | 0 | 44.2 s | **164 tests OK**, 0 warning lines |
+| same with `-X dev -X tracemalloc=30 -W always::ResourceWarning` | `9325ac3` | 0 | 74.8 s | 164 OK, 0 warning lines |
+| same with `-X dev -W error::ResourceWarning` | `9325ac3` | 0 | 42.6 s | 164 OK, 0 `Exception ignored` lines |
+| `python3 -m unittest discover -s tests -v` | `a70ae7e` | 0 | 41.9 s | 163 tests OK, 0 warning lines |
+| same with `-X dev -X tracemalloc=30 -W always::ResourceWarning` | `a70ae7e` | 0 | 73.2 s | 163 OK, 0 warning lines |
+| same with `-X dev -W error::ResourceWarning` | `a70ae7e` | 0 | 42.0 s | 163 OK, 0 `Exception ignored` lines |
+| `tests/test_final_six.py` against `3ca97d6` (import shim for one new name) | `3ca97d6` | 1 | 17.5 s | 22 of 27 fail; the 5 that pass check behaviour that was already right |
+| `node e2e/run.mjs` | `9325ac3` | 0 | 15.8 s | **15/15 steps**; server exit 0 on SIGTERM, stderr only request lines; the screenshots in `docs/screenshots/` come from this run |
+| `node e2e/ai_trace.mjs` (real Claude CLI reader) | `9325ac3` | 0 | 16.3 s | **6/6**: the page shows the AI script; lines 1–4 and 8 get the expected replies |
+| `node e2e/run.mjs`, `node e2e/ai_trace.mjs` | `a70ae7e` (+ uncommitted output) | 0, 0 | —, 14.8 s | 15/15, 6/6 |
+| live Switch, runs A and B | `a70ae7e` | 0, 0 | 85 s, 107 s | see `qa/LIVE_SWITCH_REPORT.md` |
+| live Switch, runs C and D (D recorded) | `9325ac3` | 0, 0 | 83 s, 101 s | same |
+
+New tests in `tests/test_final_six.py` (28):
+
+- **Late replies (11).** A `yes`/`no`, bare or with `Q2`, written between Minsu's two messages but received after the second, no longer approves or closes Q2; the watermark does not move; a reply written after Q2 still applies it. An older message processed after a newer one does not replace the newer question. A yes written between two questions of different kinds picks the earlier one. Rows from before the upgrade (no source time) keep the old behaviour. The receive-time lifetime and the 15-minute limit are unchanged; the existing 11/14-minute tests still pass.
+- **Demo room concurrency (5).** With a synthetic slow interpreter, two overlapping posts are both processed in arrival order, both get replies, and no execution context expires. The same over real local HTTP: two simultaneous `POST /api/demo/message`, both HTTP 200, replies in order. Message times never repeat. Too many waiting messages are refused with `DEMO_ROOM_BUSY`. The actor picker still gets 403 for a Switch room.
+- **Sender IDs and linking (7).** Against the contract double, an unlinked sender's message is answered, its ID and display name are listed, the room version does not change and the text is not stored anywhere in the database; the entry expires after an hour; `/api/switch/status` lists it without the key; only an observed ID can be linked; `manage.py senders` and `link` work on a temporary config and refuse a guessed ID; roster import stays blocked until the person is linked; linking people one at a time is not logged as a changed account, a relink is (added in `9325ac3`).
+- **24:00 and clock times (5).** ICS writes a 24:00 end as 00:00 of the next day, also on 11/30, 12/31 and 2028-02-28; other ends stay on the day; an exported ICS and CSV for a 17:00–24:00 shift; 24:30, 24:01, 13:60 and 25:00 are row issues; a CSV with 24:30 returns HTTP 200 with that row's issue instead of a 400.
+
+The browser E2E has two new steps that click the room's own script, line by line, with AI off: once in Korean and once in English, from a reset demo to the reopened 13:00–15:00 with Taeo's 15:00–17:00 kept. Lines 4 and 8 must be shown as skipped. The test types nothing itself.
+
 ## Socket and thread cleanup (2026-11-07, 19:00–19:25 KST)
 
 The 125-test runs below passed, but their logs also printed ResourceWarnings: twelve `Implicitly cleaning up <HTTPError …>` and, during the R02 test, two `unclosed <socket.socket …>`. A run with `-X tracemalloc` traced each one to where it was allocated. Every socket was the fake Switch's listening socket (`tests/fake_switch.py` called `shutdown()` but never `server_close()`), and every HTTPError came from `tests/test_http.py` reading an error body without closing it. The `agent.py:184` in the old log is only where garbage collection happened to run.

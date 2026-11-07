@@ -1,0 +1,1852 @@
+{
+ "what": "Live runs on local self-hosted Switch 0.31.0 + Mattermost, 2026-11-07, synthetic team of four, one operator posting through Mattermost's REST API, AI reading off, agent shiftpatch3, one new private room and data folder per run. Sanitized: no agent, room, post or sender ids, no keys or passwords.",
+ "runs": {
+  "A": {
+   "how": "flow by script; probes and links by live_setup_b.py",
+   "setup_room_and_agent": {
+    "started_kst": "2026-11-07T21:01:29+09:00",
+    "steps": [
+     {
+      "step": "manage.py --config <task private> register-agent --name shiftpatch3",
+      "exit_code": 0,
+      "output": "registered; key saved to the task's private 0600 config (agent id and key not recorded here)"
+     },
+     {
+      "step": "gateway session",
+      "http": 200
+     },
+     {
+      "step": "gateway create room",
+      "http": 201
+     },
+     {
+      "step": "manage.py set-addressing anyone",
+      "exit_code": 1,
+      "output": "HTTP 403\nset-addressing was refused; set the addressing rule in the Switch Gateway instead"
+     },
+     {
+      "step": "gateway addressing-policy for shiftpatch3 in the new room",
+      "http": 200
+     },
+     {
+      "step": "manage.py set-room",
+      "exit_code": 0
+     }
+    ],
+    "secrets_printed": false,
+    "finished_kst": "2026-11-07T21:01:29+09:00",
+    "agent_name": "shiftpatch3"
+   },
+   "setup_links": {
+    "started_kst": "2026-11-07T21:02:09+09:00",
+    "steps": [
+     {
+      "step": "bridge",
+      "state": "connected",
+      "room_covered": true
+     },
+     {
+      "step": "mattermost logins",
+      "ok": [
+       "jian",
+       "minsu",
+       "seoyeon",
+       "taeo"
+      ]
+     },
+     {
+      "step": "probe post",
+      "attempt": 1,
+      "account": "seoyeon",
+      "http": 201
+     },
+     {
+      "step": "probe post",
+      "attempt": 1,
+      "account": "minsu",
+      "http": 201
+     },
+     {
+      "step": "probe post",
+      "attempt": 1,
+      "account": "jian",
+      "http": 201
+     },
+     {
+      "step": "probe post",
+      "attempt": 1,
+      "account": "taeo",
+      "http": 201
+     },
+     {
+      "step": "probes seen",
+      "accounts": [
+       "jian",
+       "minsu",
+       "seoyeon",
+       "taeo"
+      ],
+      "room_version_before": 0,
+      "room_version_after": 0
+     },
+     {
+      "step": "manage.py senders",
+      "exit_code": 0,
+      "listed": [
+       {
+        "position": 1,
+        "display_name": "taeo",
+        "times": 1
+       },
+       {
+        "position": 2,
+        "display_name": "jian",
+        "times": 1
+       },
+       {
+        "position": 3,
+        "display_name": "minsu",
+        "times": 1
+       },
+       {
+        "position": 4,
+        "display_name": "seoyeon",
+        "times": 1
+       }
+      ],
+      "text_stored": false
+     },
+     {
+      "step": "manage.py link <sender from senders> <staff_id>",
+      "position": 1,
+      "staff_id": "taeo",
+      "exit_code": 0,
+      "output": "linked <sender #1> to taeo; 1 Switch participants linked in this room"
+     },
+     {
+      "step": "manage.py link <sender from senders> <staff_id>",
+      "position": 2,
+      "staff_id": "jian",
+      "exit_code": 0,
+      "output": "linked <sender #2> to jian; 2 Switch participants linked in this room"
+     },
+     {
+      "step": "manage.py link <sender from senders> <staff_id>",
+      "position": 3,
+      "staff_id": "minsu",
+      "exit_code": 0,
+      "output": "linked <sender #3> to minsu; 3 Switch participants linked in this room"
+     },
+     {
+      "step": "manage.py link <sender from senders> <staff_id>",
+      "position": 4,
+      "staff_id": "seoyeon",
+      "exit_code": 0,
+      "output": "linked <sender #4> to seoyeon; 4 Switch participants linked in this room"
+     },
+     {
+      "step": "manage.py link with an id never observed",
+      "exit_code": 1,
+      "refused": true
+     },
+     {
+      "step": "after linking",
+      "linked": [
+       "jian",
+       "minsu",
+       "seoyeon",
+       "taeo"
+      ],
+      "unlinked_left": 0
+     },
+     {
+      "step": "probe text in database",
+      "found": false
+     }
+    ],
+    "secrets_printed": false,
+    "finished_kst": "2026-11-07T21:02:14+09:00"
+   },
+   "flow": {
+    "started": "2026-11-07T12:03:41.373Z",
+    "exit_code": 0,
+    "duration_s": 85.005,
+    "agent": "shiftpatch3",
+    "ai": "off (SHIFTPATCH_AI=off)",
+    "trace": [
+     {
+      "step": "ocr_review_import_into_switch_room",
+      "roster_version": 1
+     },
+     {
+      "actor": "minsu",
+      "body": "I might be unable to cover Monday 13-17",
+      "seconds_to_state": 0.432,
+      "version": 1,
+      "gaps": [],
+      "pending": [
+       "Q1"
+      ],
+      "outbox": {
+       "sent": 5
+      },
+      "shot": "02-minsu-asks.png"
+     },
+     {
+      "actor": "minsu",
+      "body": "yes",
+      "seconds_to_state": 0.219,
+      "version": 2,
+      "gaps": [
+       [
+        780,
+        1020
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 6
+      },
+      "shot": "03-minsu-yes.png"
+     },
+     {
+      "actor": "jian",
+      "body": "available 13:60-15:00",
+      "seconds_to_state": 0.422,
+      "version": 2,
+      "gaps": [
+       [
+        780,
+        1020
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 7
+      },
+      "shot": "04-bad-time-refused.png"
+     },
+     {
+      "actor": "jian",
+      "body": "available 2026-11-09 13:00-15:00",
+      "seconds_to_state": 0.227,
+      "version": 3,
+      "gaps": [
+       [
+        780,
+        1020
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 8
+      },
+      "shot": "05-jian-available.png"
+     },
+     {
+      "actor": "taeo",
+      "body": "available 2026-11-09 15:00-17:00",
+      "seconds_to_state": 0.425,
+      "version": 4,
+      "gaps": [
+       [
+        780,
+        1020
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 9
+      },
+      "shot": "06-taeo-available-proposal.png"
+     },
+     {
+      "actor": "jian",
+      "body": "accept P2-a",
+      "seconds_to_state": 0.225,
+      "version": 5,
+      "gaps": [
+       [
+        780,
+        1020
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 10
+      },
+      "shot": "07-jian-accepts.png"
+     },
+     {
+      "actor": "taeo",
+      "body": "accept P2-b",
+      "seconds_to_state": 0.233,
+      "version": 6,
+      "gaps": [
+       [
+        780,
+        1020
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 11
+      },
+      "shot": "08-taeo-accepts.png"
+     },
+     {
+      "actor": "seoyeon",
+      "body": "confirm P2",
+      "seconds_to_state": 0.484,
+      "version": 7,
+      "gaps": [],
+      "pending": [],
+      "outbox": {
+       "sent": 12
+      },
+      "shot": "09-seoyeon-confirms.png"
+     },
+     {
+      "actor": "jian",
+      "body": "unavailable 2026-11-09 13:00-15:00",
+      "seconds_to_state": 0.428,
+      "version": 8,
+      "gaps": [
+       [
+        780,
+        900
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 13
+      },
+      "shot": "10-jian-drops.png"
+     },
+     {
+      "actor": "seoyeon",
+      "body": "confirm P2",
+      "seconds_to_state": 0.431,
+      "version": 8,
+      "gaps": [
+       [
+        780,
+        900
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 14
+      },
+      "shot": "11-old-confirm-refused.png"
+     },
+     {
+      "actor": "seoyeon",
+      "body": "export",
+      "seconds_to_state": 0.227,
+      "version": 8,
+      "gaps": [
+       [
+        780,
+        900
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 16
+      },
+      "shot": "12-export-csv.png"
+     },
+     {
+      "actor": "seoyeon",
+      "body": "export ics",
+      "seconds_to_state": 0.451,
+      "version": 8,
+      "gaps": [
+       [
+        780,
+        900
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 18
+      },
+      "shot": "13-export-ics.png"
+     },
+     {
+      "actor": "seoyeon",
+      "body": "status",
+      "seconds_to_state": 0.219,
+      "version": 8,
+      "gaps": [
+       [
+        780,
+        900
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 19
+      },
+      "shot": "14-status-link.png"
+     }
+    ],
+    "console_errors": []
+   },
+   "final_state": {
+    "version": 8,
+    "gaps": [
+     [
+      780,
+      900
+     ]
+    ],
+    "coverage": [
+     {
+      "start": 540,
+      "end": 780,
+      "status": "original",
+      "staff_id": "jian"
+     },
+     {
+      "start": 780,
+      "end": 900,
+      "status": "uncovered",
+      "staff_id": null
+     },
+     {
+      "start": 900,
+      "end": 1020,
+      "status": "confirmed",
+      "staff_id": "taeo"
+     },
+     {
+      "start": 1020,
+      "end": 1080,
+      "status": "original",
+      "staff_id": "taeo"
+     }
+    ],
+    "proposals": [
+     {
+      "proposal_id": "P2",
+      "state": "confirmed",
+      "cuts": [
+       {
+        "staff_id": "jian",
+        "start": 780,
+        "end": 900
+       }
+      ]
+     },
+     {
+      "proposal_id": "P1",
+      "state": "superseded",
+      "cuts": []
+     }
+    ],
+    "exports": [
+     {
+      "file_name": "coverage-2026-11-09-v8-0293890400d4.ics",
+      "kind": "ics",
+      "version": 8,
+      "state": "published"
+     },
+     {
+      "file_name": "coverage-2026-11-09-v8-3aa2b9af89f5.csv",
+      "kind": "csv",
+      "version": 8,
+      "state": "published"
+     }
+    ],
+    "outbox": {
+     "sent": 19
+    },
+    "delivery": [],
+    "ai": {
+     "enabled": false,
+     "status": "unavailable"
+    },
+    "bridge": {
+     "state": "connected",
+     "counters": {
+      "frames": 118,
+      "pings": 100,
+      "pongs": 100,
+      "messages": 17,
+      "addressed": 17,
+      "gaps": 0,
+      "reconnects": 0,
+      "bad_frames": 0,
+      "read_timeouts": 0
+     },
+     "unlinked_seen": 0
+    },
+    "csv_http": 200,
+    "csv": "date,duty,start,end,assignee,status,status_ko,version,generated_at\r\n2026-11-09,일반 문의,09:00,13:00,지안,original,원 근무,8,2026-11-07T21:04:44+09:00\r\n2026-11-09,일반 문의,13:00,15:00,,uncovered,미해결,8,2026-11-07T21:04:44+09:00\r\n2026-11-09,일반 문의,15:00,17:00,태오,confirmed,대체 확정,8,2026-11-07T21:04:44+09:00\r\n2026-11-09,일반 문의,17:00,18:00,태오,original,원 근무,8,2026-11-07T21:04:44+09:00\r\n",
+    "ics_http": 200,
+    "ics_event_lines": [
+     "DTSTART;TZID=Asia/Seoul:20261109T090000",
+     "DTEND;TZID=Asia/Seoul:20261109T130000",
+     "SUMMARY:지안 · 일반 문의",
+     "DESCRIPTION:원 근무 · snapshot v8",
+     "DTSTART;TZID=Asia/Seoul:20261109T150000",
+     "DTEND;TZID=Asia/Seoul:20261109T170000",
+     "SUMMARY:태오 · 일반 문의",
+     "DESCRIPTION:대체 확정 · snapshot v8",
+     "DTSTART;TZID=Asia/Seoul:20261109T170000",
+     "DTEND;TZID=Asia/Seoul:20261109T180000",
+     "SUMMARY:태오 · 일반 문의",
+     "DESCRIPTION:원 근무 · snapshot v8"
+    ]
+   },
+   "server": {
+    "code_commit": "a70ae7e1c4a5f5813c0632b9138be5a91532c682",
+    "last_stdout_line": "ShiftPatch stopped",
+    "stderr_lines": 118,
+    "stderr_lines_other_than_requests": [],
+    "exit_code_after_sigterm": 0
+   }
+  },
+  "B": {
+   "how": "recorded; probes and links on camera",
+   "setup_room_and_agent": {
+    "started_kst": "2026-11-07T21:06:05+09:00",
+    "steps": [
+     {
+      "step": "register-agent",
+      "skipped": "already registered for this task"
+     },
+     {
+      "step": "gateway session",
+      "http": 200
+     },
+     {
+      "step": "gateway create room",
+      "http": 201
+     },
+     {
+      "step": "manage.py set-addressing anyone",
+      "exit_code": 1,
+      "output": "HTTP 403\nset-addressing was refused; set the addressing rule in the Switch Gateway instead"
+     },
+     {
+      "step": "gateway addressing-policy for shiftpatch3 in the new room",
+      "http": 200
+     },
+     {
+      "step": "manage.py set-room",
+      "exit_code": 0
+     }
+    ],
+    "secrets_printed": false,
+    "finished_kst": "2026-11-07T21:06:06+09:00",
+    "agent_name": "shiftpatch3"
+   },
+   "flow": {
+    "started": "2026-11-07T12:07:20.472Z",
+    "exit_code": 0,
+    "duration_s": 106.848,
+    "agent": "shiftpatch3",
+    "ai": "off (SHIFTPATCH_AI=off)",
+    "trace": [
+     {
+      "step": "ocr_review_import_into_switch_room",
+      "roster_version": 1
+     },
+     {
+      "actor": "minsu",
+      "body": "I might be unable to cover Monday 13-17",
+      "seconds_to_state": 0.57,
+      "version": 1,
+      "gaps": [],
+      "pending": [
+       "Q1"
+      ],
+      "outbox": {
+       "sent": 5
+      },
+      "shot": "02-minsu-asks.png"
+     },
+     {
+      "actor": "minsu",
+      "body": "yes",
+      "seconds_to_state": 0.817,
+      "version": 2,
+      "gaps": [
+       [
+        780,
+        1020
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 6
+      },
+      "shot": "03-minsu-yes.png"
+     },
+     {
+      "actor": "jian",
+      "body": "available 13:60-15:00",
+      "seconds_to_state": 0.51,
+      "version": 2,
+      "gaps": [
+       [
+        780,
+        1020
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 7
+      },
+      "shot": "04-bad-time-refused.png"
+     },
+     {
+      "actor": "jian",
+      "body": "available 2026-11-09 13:00-15:00",
+      "seconds_to_state": 0.437,
+      "version": 3,
+      "gaps": [
+       [
+        780,
+        1020
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 8
+      },
+      "shot": "05-jian-available.png"
+     },
+     {
+      "actor": "taeo",
+      "body": "available 2026-11-09 15:00-17:00",
+      "seconds_to_state": 3.845,
+      "version": 4,
+      "gaps": [
+       [
+        780,
+        1020
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 9
+      },
+      "shot": "06-taeo-available-proposal.png"
+     },
+     {
+      "actor": "jian",
+      "body": "accept P2-a",
+      "seconds_to_state": 0.436,
+      "version": 5,
+      "gaps": [
+       [
+        780,
+        1020
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 10
+      },
+      "shot": "07-jian-accepts.png"
+     },
+     {
+      "actor": "taeo",
+      "body": "accept P2-b",
+      "seconds_to_state": 0.439,
+      "version": 6,
+      "gaps": [
+       [
+        780,
+        1020
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 11
+      },
+      "shot": "08-taeo-accepts.png"
+     },
+     {
+      "actor": "seoyeon",
+      "body": "confirm P2",
+      "seconds_to_state": 0.253,
+      "version": 7,
+      "gaps": [],
+      "pending": [],
+      "outbox": {
+       "sent": 12
+      },
+      "shot": "09-seoyeon-confirms.png"
+     },
+     {
+      "actor": "jian",
+      "body": "unavailable 2026-11-09 13:00-15:00",
+      "seconds_to_state": 0.43,
+      "version": 8,
+      "gaps": [
+       [
+        780,
+        900
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 13
+      },
+      "shot": "10-jian-drops.png"
+     },
+     {
+      "actor": "seoyeon",
+      "body": "confirm P2",
+      "seconds_to_state": 0.681,
+      "version": 8,
+      "gaps": [
+       [
+        780,
+        900
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 14
+      },
+      "shot": "11-old-confirm-refused.png"
+     },
+     {
+      "actor": "seoyeon",
+      "body": "export",
+      "seconds_to_state": 0.233,
+      "version": 8,
+      "gaps": [
+       [
+        780,
+        900
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 16
+      },
+      "shot": "12-export-csv.png"
+     },
+     {
+      "actor": "seoyeon",
+      "body": "export ics",
+      "seconds_to_state": 0.433,
+      "version": 8,
+      "gaps": [
+       [
+        780,
+        900
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 18
+      },
+      "shot": "13-export-ics.png"
+     },
+     {
+      "actor": "seoyeon",
+      "body": "status",
+      "seconds_to_state": 0.242,
+      "version": 8,
+      "gaps": [
+       [
+        780,
+        900
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 19
+      },
+      "shot": "14-status-link.png"
+     }
+    ],
+    "console_errors": [],
+    "setup": [
+     {
+      "probe": "seoyeon",
+      "http": 201
+     },
+     {
+      "probe": "minsu",
+      "http": 201
+     },
+     {
+      "probe": "jian",
+      "http": 201
+     },
+     {
+      "probe": "taeo",
+      "http": 201
+     },
+     {
+      "seen": [
+       "jian",
+       "minsu",
+       "seoyeon",
+       "taeo"
+      ],
+      "room_version_after_probes": 0
+     },
+     {
+      "linked": "taeo"
+     },
+     {
+      "linked": "jian"
+     },
+     {
+      "linked": "minsu"
+     },
+     {
+      "linked": "seoyeon"
+     }
+    ]
+   },
+   "final_state": {
+    "version": 8,
+    "gaps": [
+     [
+      780,
+      900
+     ]
+    ],
+    "coverage": [
+     {
+      "start": 540,
+      "end": 780,
+      "status": "original",
+      "staff_id": "jian"
+     },
+     {
+      "start": 780,
+      "end": 900,
+      "status": "uncovered",
+      "staff_id": null
+     },
+     {
+      "start": 900,
+      "end": 1020,
+      "status": "confirmed",
+      "staff_id": "taeo"
+     },
+     {
+      "start": 1020,
+      "end": 1080,
+      "status": "original",
+      "staff_id": "taeo"
+     }
+    ],
+    "proposals": [
+     {
+      "proposal_id": "P2",
+      "state": "confirmed",
+      "cuts": [
+       {
+        "staff_id": "jian",
+        "start": 780,
+        "end": 900
+       }
+      ]
+     },
+     {
+      "proposal_id": "P1",
+      "state": "superseded",
+      "cuts": []
+     }
+    ],
+    "exports": [
+     {
+      "file_name": "coverage-2026-11-09-v8-40efcad775e6.ics",
+      "kind": "ics",
+      "version": 8,
+      "state": "published"
+     },
+     {
+      "file_name": "coverage-2026-11-09-v8-9fd5e08b65b4.csv",
+      "kind": "csv",
+      "version": 8,
+      "state": "published"
+     }
+    ],
+    "outbox": {
+     "sent": 19
+    },
+    "delivery": [],
+    "ai": {
+     "enabled": false,
+     "status": "unavailable"
+    },
+    "bridge": {
+     "state": "connected",
+     "counters": {
+      "frames": 102,
+      "pings": 84,
+      "pongs": 84,
+      "messages": 17,
+      "addressed": 17,
+      "gaps": 0,
+      "reconnects": 0,
+      "bad_frames": 0,
+      "read_timeouts": 0
+     },
+     "unlinked_seen": 0
+    },
+    "csv_http": 200,
+    "csv": "date,duty,start,end,assignee,status,status_ko,version,generated_at\r\n2026-11-09,일반 문의,09:00,13:00,지안,original,원 근무,8,2026-11-07T21:08:49+09:00\r\n2026-11-09,일반 문의,13:00,15:00,,uncovered,미해결,8,2026-11-07T21:08:49+09:00\r\n2026-11-09,일반 문의,15:00,17:00,태오,confirmed,대체 확정,8,2026-11-07T21:08:49+09:00\r\n2026-11-09,일반 문의,17:00,18:00,태오,original,원 근무,8,2026-11-07T21:08:49+09:00\r\n",
+    "ics_http": 200,
+    "ics_event_lines": [
+     "DTSTART;TZID=Asia/Seoul:20261109T090000",
+     "DTEND;TZID=Asia/Seoul:20261109T130000",
+     "SUMMARY:지안 · 일반 문의",
+     "DESCRIPTION:원 근무 · snapshot v8",
+     "DTSTART;TZID=Asia/Seoul:20261109T150000",
+     "DTEND;TZID=Asia/Seoul:20261109T170000",
+     "SUMMARY:태오 · 일반 문의",
+     "DESCRIPTION:대체 확정 · snapshot v8",
+     "DTSTART;TZID=Asia/Seoul:20261109T170000",
+     "DTEND;TZID=Asia/Seoul:20261109T180000",
+     "SUMMARY:태오 · 일반 문의",
+     "DESCRIPTION:원 근무 · snapshot v8"
+    ]
+   },
+   "server": {
+    "code_commit": "a70ae7e1c4a5f5813c0632b9138be5a91532c682",
+    "last_stdout_line": "ShiftPatch stopped",
+    "stderr_lines": 134,
+    "stderr_lines_other_than_requests": [],
+    "exit_code_after_sigterm": 0
+   }
+  },
+  "C": {
+   "how": "flow by script; probes and links by live_setup_b.py",
+   "setup_room_and_agent": {
+    "started_kst": "2026-11-07T21:15:44+09:00",
+    "steps": [
+     {
+      "step": "register-agent",
+      "skipped": "already registered for this task"
+     },
+     {
+      "step": "gateway session",
+      "http": 200
+     },
+     {
+      "step": "gateway create room",
+      "http": 201
+     },
+     {
+      "step": "manage.py set-addressing anyone",
+      "exit_code": 1,
+      "output": "HTTP 403\nset-addressing was refused; set the addressing rule in the Switch Gateway instead"
+     },
+     {
+      "step": "gateway addressing-policy for shiftpatch3 in the new room",
+      "http": 200
+     },
+     {
+      "step": "manage.py set-room",
+      "exit_code": 0
+     }
+    ],
+    "secrets_printed": false,
+    "finished_kst": "2026-11-07T21:15:45+09:00",
+    "agent_name": "shiftpatch3"
+   },
+   "setup_links": {
+    "started_kst": "2026-11-07T21:16:00+09:00",
+    "steps": [
+     {
+      "step": "bridge",
+      "state": "connected",
+      "room_covered": true
+     },
+     {
+      "step": "mattermost logins",
+      "ok": [
+       "jian",
+       "minsu",
+       "seoyeon",
+       "taeo"
+      ]
+     },
+     {
+      "step": "probe post",
+      "attempt": 1,
+      "account": "seoyeon",
+      "http": 201
+     },
+     {
+      "step": "probe post",
+      "attempt": 1,
+      "account": "minsu",
+      "http": 201
+     },
+     {
+      "step": "probe post",
+      "attempt": 1,
+      "account": "jian",
+      "http": 201
+     },
+     {
+      "step": "probe post",
+      "attempt": 1,
+      "account": "taeo",
+      "http": 201
+     },
+     {
+      "step": "probes seen",
+      "accounts": [
+       "jian",
+       "minsu",
+       "seoyeon",
+       "taeo"
+      ],
+      "room_version_before": 0,
+      "room_version_after": 0
+     },
+     {
+      "step": "manage.py senders",
+      "exit_code": 0,
+      "listed": [
+       {
+        "position": 1,
+        "display_name": "taeo",
+        "times": 1
+       },
+       {
+        "position": 2,
+        "display_name": "jian",
+        "times": 1
+       },
+       {
+        "position": 3,
+        "display_name": "minsu",
+        "times": 1
+       },
+       {
+        "position": 4,
+        "display_name": "seoyeon",
+        "times": 1
+       }
+      ],
+      "text_stored": false
+     },
+     {
+      "step": "manage.py link <sender from senders> <staff_id>",
+      "position": 1,
+      "staff_id": "taeo",
+      "exit_code": 0,
+      "output": "linked <sender #1> to taeo; 1 Switch participants linked in this room"
+     },
+     {
+      "step": "manage.py link <sender from senders> <staff_id>",
+      "position": 2,
+      "staff_id": "jian",
+      "exit_code": 0,
+      "output": "linked <sender #2> to jian; 2 Switch participants linked in this room"
+     },
+     {
+      "step": "manage.py link <sender from senders> <staff_id>",
+      "position": 3,
+      "staff_id": "minsu",
+      "exit_code": 0,
+      "output": "linked <sender #3> to minsu; 3 Switch participants linked in this room"
+     },
+     {
+      "step": "manage.py link <sender from senders> <staff_id>",
+      "position": 4,
+      "staff_id": "seoyeon",
+      "exit_code": 0,
+      "output": "linked <sender #4> to seoyeon; 4 Switch participants linked in this room"
+     },
+     {
+      "step": "manage.py link with an id never observed",
+      "exit_code": 1,
+      "refused": true
+     },
+     {
+      "step": "after linking",
+      "linked": [
+       "jian",
+       "minsu",
+       "seoyeon",
+       "taeo"
+      ],
+      "unlinked_left": 0
+     },
+     {
+      "step": "probe text in database",
+      "found": false
+     }
+    ],
+    "secrets_printed": false,
+    "finished_kst": "2026-11-07T21:16:04+09:00"
+   },
+   "flow": {
+    "started": "2026-11-07T12:16:05.135Z",
+    "exit_code": 0,
+    "duration_s": 83.095,
+    "agent": "shiftpatch3",
+    "ai": "off (SHIFTPATCH_AI=off)",
+    "trace": [
+     {
+      "step": "ocr_review_import_into_switch_room",
+      "roster_version": 1
+     },
+     {
+      "actor": "minsu",
+      "body": "I might be unable to cover Monday 13-17",
+      "seconds_to_state": 0.457,
+      "version": 1,
+      "gaps": [],
+      "pending": [
+       "Q1"
+      ],
+      "outbox": {
+       "sent": 5
+      },
+      "shot": "02-minsu-asks.png"
+     },
+     {
+      "actor": "minsu",
+      "body": "yes",
+      "seconds_to_state": 0.216,
+      "version": 2,
+      "gaps": [
+       [
+        780,
+        1020
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 6
+      },
+      "shot": "03-minsu-yes.png"
+     },
+     {
+      "actor": "jian",
+      "body": "available 13:60-15:00",
+      "seconds_to_state": 0.428,
+      "version": 2,
+      "gaps": [
+       [
+        780,
+        1020
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 7
+      },
+      "shot": "04-bad-time-refused.png"
+     },
+     {
+      "actor": "jian",
+      "body": "available 2026-11-09 13:00-15:00",
+      "seconds_to_state": 0.216,
+      "version": 3,
+      "gaps": [
+       [
+        780,
+        1020
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 8
+      },
+      "shot": "05-jian-available.png"
+     },
+     {
+      "actor": "taeo",
+      "body": "available 2026-11-09 15:00-17:00",
+      "seconds_to_state": 0.419,
+      "version": 4,
+      "gaps": [
+       [
+        780,
+        1020
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 9
+      },
+      "shot": "06-taeo-available-proposal.png"
+     },
+     {
+      "actor": "jian",
+      "body": "accept P2-a",
+      "seconds_to_state": 0.218,
+      "version": 5,
+      "gaps": [
+       [
+        780,
+        1020
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 10
+      },
+      "shot": "07-jian-accepts.png"
+     },
+     {
+      "actor": "taeo",
+      "body": "accept P2-b",
+      "seconds_to_state": 0.419,
+      "version": 6,
+      "gaps": [
+       [
+        780,
+        1020
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 11
+      },
+      "shot": "08-taeo-accepts.png"
+     },
+     {
+      "actor": "seoyeon",
+      "body": "confirm P2",
+      "seconds_to_state": 0.215,
+      "version": 7,
+      "gaps": [],
+      "pending": [],
+      "outbox": {
+       "sent": 12
+      },
+      "shot": "09-seoyeon-confirms.png"
+     },
+     {
+      "actor": "jian",
+      "body": "unavailable 2026-11-09 13:00-15:00",
+      "seconds_to_state": 0.483,
+      "version": 8,
+      "gaps": [
+       [
+        780,
+        900
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 13
+      },
+      "shot": "10-jian-drops.png"
+     },
+     {
+      "actor": "seoyeon",
+      "body": "confirm P2",
+      "seconds_to_state": 0.797,
+      "version": 8,
+      "gaps": [
+       [
+        780,
+        900
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 14
+      },
+      "shot": "11-old-confirm-refused.png"
+     },
+     {
+      "actor": "seoyeon",
+      "body": "export",
+      "seconds_to_state": 0.49,
+      "version": 8,
+      "gaps": [
+       [
+        780,
+        900
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 16
+      },
+      "shot": "12-export-csv.png"
+     },
+     {
+      "actor": "seoyeon",
+      "body": "export ics",
+      "seconds_to_state": 0.244,
+      "version": 8,
+      "gaps": [
+       [
+        780,
+        900
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 18
+      },
+      "shot": "13-export-ics.png"
+     },
+     {
+      "actor": "seoyeon",
+      "body": "status",
+      "seconds_to_state": 0.424,
+      "version": 8,
+      "gaps": [
+       [
+        780,
+        900
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 19
+      },
+      "shot": "14-status-link.png"
+     }
+    ],
+    "console_errors": []
+   },
+   "final_state": {
+    "version": 8,
+    "gaps": [
+     [
+      780,
+      900
+     ]
+    ],
+    "coverage": [
+     {
+      "start": 540,
+      "end": 780,
+      "status": "original",
+      "staff_id": "jian"
+     },
+     {
+      "start": 780,
+      "end": 900,
+      "status": "uncovered",
+      "staff_id": null
+     },
+     {
+      "start": 900,
+      "end": 1020,
+      "status": "confirmed",
+      "staff_id": "taeo"
+     },
+     {
+      "start": 1020,
+      "end": 1080,
+      "status": "original",
+      "staff_id": "taeo"
+     }
+    ],
+    "proposals": [
+     {
+      "proposal_id": "P2",
+      "state": "confirmed",
+      "cuts": [
+       {
+        "staff_id": "jian",
+        "start": 780,
+        "end": 900
+       }
+      ]
+     },
+     {
+      "proposal_id": "P1",
+      "state": "superseded",
+      "cuts": []
+     }
+    ],
+    "exports": [
+     {
+      "file_name": "coverage-2026-11-09-v8-a999cb9c45d4.ics",
+      "kind": "ics",
+      "version": 8,
+      "state": "published"
+     },
+     {
+      "file_name": "coverage-2026-11-09-v8-77ef99cdae6c.csv",
+      "kind": "csv",
+      "version": 8,
+      "state": "published"
+     }
+    ],
+    "outbox": {
+     "sent": 19
+    },
+    "delivery": [],
+    "ai": {
+     "enabled": false,
+     "status": "unavailable"
+    },
+    "bridge": {
+     "state": "connected",
+     "counters": {
+      "frames": 62,
+      "pings": 44,
+      "pongs": 44,
+      "messages": 17,
+      "addressed": 17,
+      "gaps": 0,
+      "reconnects": 0,
+      "bad_frames": 0,
+      "read_timeouts": 0
+     },
+     "unlinked_seen": 0
+    },
+    "csv_http": 200,
+    "csv": "date,duty,start,end,assignee,status,status_ko,version,generated_at\r\n2026-11-09,일반 문의,09:00,13:00,지안,original,원 근무,8,2026-11-07T21:17:06+09:00\r\n2026-11-09,일반 문의,13:00,15:00,,uncovered,미해결,8,2026-11-07T21:17:06+09:00\r\n2026-11-09,일반 문의,15:00,17:00,태오,confirmed,대체 확정,8,2026-11-07T21:17:06+09:00\r\n2026-11-09,일반 문의,17:00,18:00,태오,original,원 근무,8,2026-11-07T21:17:06+09:00\r\n",
+    "ics_http": 200,
+    "ics_event_lines": [
+     "DTSTART;TZID=Asia/Seoul:20261109T090000",
+     "DTEND;TZID=Asia/Seoul:20261109T130000",
+     "SUMMARY:지안 · 일반 문의",
+     "DESCRIPTION:원 근무 · snapshot v8",
+     "DTSTART;TZID=Asia/Seoul:20261109T150000",
+     "DTEND;TZID=Asia/Seoul:20261109T170000",
+     "SUMMARY:태오 · 일반 문의",
+     "DESCRIPTION:대체 확정 · snapshot v8",
+     "DTSTART;TZID=Asia/Seoul:20261109T170000",
+     "DTEND;TZID=Asia/Seoul:20261109T180000",
+     "SUMMARY:태오 · 일반 문의",
+     "DESCRIPTION:원 근무 · snapshot v8"
+    ]
+   },
+   "server": {
+    "code_commit": "9325ac31d239a70e1b0462365e824efe0ede9f3f",
+    "last_stdout_line": "ShiftPatch stopped",
+    "stderr_lines": 119,
+    "stderr_lines_other_than_requests": [],
+    "exit_code_after_sigterm": 0
+   }
+  },
+  "D": {
+   "how": "recorded for the final video; probes and links on camera",
+   "setup_room_and_agent": {
+    "started_kst": "2026-11-07T21:21:02+09:00",
+    "steps": [
+     {
+      "step": "register-agent",
+      "skipped": "already registered for this task"
+     },
+     {
+      "step": "gateway session",
+      "http": 200
+     },
+     {
+      "step": "gateway create room",
+      "http": 201
+     },
+     {
+      "step": "manage.py set-addressing anyone",
+      "exit_code": 1,
+      "output": "HTTP 403\nset-addressing was refused; set the addressing rule in the Switch Gateway instead"
+     },
+     {
+      "step": "gateway addressing-policy for shiftpatch3 in the new room",
+      "http": 200
+     },
+     {
+      "step": "manage.py set-room",
+      "exit_code": 0
+     }
+    ],
+    "secrets_printed": false,
+    "finished_kst": "2026-11-07T21:21:03+09:00",
+    "agent_name": "shiftpatch3"
+   },
+   "flow": {
+    "started": "2026-11-07T12:21:18.350Z",
+    "exit_code": 0,
+    "duration_s": 101.305,
+    "agent": "shiftpatch3",
+    "ai": "off (SHIFTPATCH_AI=off)",
+    "trace": [
+     {
+      "step": "ocr_review_import_into_switch_room",
+      "roster_version": 1
+     },
+     {
+      "actor": "minsu",
+      "body": "I might be unable to cover Monday 13-17",
+      "seconds_to_state": 0.423,
+      "version": 1,
+      "gaps": [],
+      "pending": [
+       "Q1"
+      ],
+      "outbox": {
+       "sent": 5
+      },
+      "shot": "02-minsu-asks.png"
+     },
+     {
+      "actor": "minsu",
+      "body": "yes",
+      "seconds_to_state": 0.432,
+      "version": 2,
+      "gaps": [
+       [
+        780,
+        1020
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 6
+      },
+      "shot": "03-minsu-yes.png"
+     },
+     {
+      "actor": "jian",
+      "body": "available 13:60-15:00",
+      "seconds_to_state": 0.425,
+      "version": 2,
+      "gaps": [
+       [
+        780,
+        1020
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 7
+      },
+      "shot": "04-bad-time-refused.png"
+     },
+     {
+      "actor": "jian",
+      "body": "available 2026-11-09 13:00-15:00",
+      "seconds_to_state": 0.228,
+      "version": 3,
+      "gaps": [
+       [
+        780,
+        1020
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 8
+      },
+      "shot": "05-jian-available.png"
+     },
+     {
+      "actor": "taeo",
+      "body": "available 2026-11-09 15:00-17:00",
+      "seconds_to_state": 0.436,
+      "version": 4,
+      "gaps": [
+       [
+        780,
+        1020
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 9
+      },
+      "shot": "06-taeo-available-proposal.png"
+     },
+     {
+      "actor": "jian",
+      "body": "accept P2-a",
+      "seconds_to_state": 0.223,
+      "version": 5,
+      "gaps": [
+       [
+        780,
+        1020
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 10
+      },
+      "shot": "07-jian-accepts.png"
+     },
+     {
+      "actor": "taeo",
+      "body": "accept P2-b",
+      "seconds_to_state": 0.438,
+      "version": 6,
+      "gaps": [
+       [
+        780,
+        1020
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 11
+      },
+      "shot": "08-taeo-accepts.png"
+     },
+     {
+      "actor": "seoyeon",
+      "body": "confirm P2",
+      "seconds_to_state": 0.226,
+      "version": 7,
+      "gaps": [],
+      "pending": [],
+      "outbox": {
+       "sent": 12
+      },
+      "shot": "09-seoyeon-confirms.png"
+     },
+     {
+      "actor": "jian",
+      "body": "unavailable 2026-11-09 13:00-15:00",
+      "seconds_to_state": 0.47,
+      "version": 8,
+      "gaps": [
+       [
+        780,
+        900
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 13
+      },
+      "shot": "10-jian-drops.png"
+     },
+     {
+      "actor": "seoyeon",
+      "body": "confirm P2",
+      "seconds_to_state": 0.457,
+      "version": 8,
+      "gaps": [
+       [
+        780,
+        900
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 14
+      },
+      "shot": "11-old-confirm-refused.png"
+     },
+     {
+      "actor": "seoyeon",
+      "body": "export",
+      "seconds_to_state": 0.443,
+      "version": 8,
+      "gaps": [
+       [
+        780,
+        900
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 16
+      },
+      "shot": "12-export-csv.png"
+     },
+     {
+      "actor": "seoyeon",
+      "body": "export ics",
+      "seconds_to_state": 0.428,
+      "version": 8,
+      "gaps": [
+       [
+        780,
+        900
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 18
+      },
+      "shot": "13-export-ics.png"
+     },
+     {
+      "actor": "seoyeon",
+      "body": "status",
+      "seconds_to_state": 0.226,
+      "version": 8,
+      "gaps": [
+       [
+        780,
+        900
+       ]
+      ],
+      "pending": [],
+      "outbox": {
+       "sent": 19
+      },
+      "shot": "14-status-link.png"
+     }
+    ],
+    "console_errors": [],
+    "setup": [
+     {
+      "probe": "seoyeon",
+      "http": 201
+     },
+     {
+      "probe": "minsu",
+      "http": 201
+     },
+     {
+      "probe": "jian",
+      "http": 201
+     },
+     {
+      "probe": "taeo",
+      "http": 201
+     },
+     {
+      "seen": [
+       "jian",
+       "minsu",
+       "seoyeon",
+       "taeo"
+      ],
+      "room_version_after_probes": 0
+     },
+     {
+      "linked": "taeo"
+     },
+     {
+      "linked": "jian"
+     },
+     {
+      "linked": "minsu"
+     },
+     {
+      "linked": "seoyeon"
+     }
+    ]
+   },
+   "final_state": {
+    "version": 8,
+    "gaps": [
+     [
+      780,
+      900
+     ]
+    ],
+    "coverage": [
+     {
+      "start": 540,
+      "end": 780,
+      "status": "original",
+      "staff_id": "jian"
+     },
+     {
+      "start": 780,
+      "end": 900,
+      "status": "uncovered",
+      "staff_id": null
+     },
+     {
+      "start": 900,
+      "end": 1020,
+      "status": "confirmed",
+      "staff_id": "taeo"
+     },
+     {
+      "start": 1020,
+      "end": 1080,
+      "status": "original",
+      "staff_id": "taeo"
+     }
+    ],
+    "proposals": [
+     {
+      "proposal_id": "P2",
+      "state": "confirmed",
+      "cuts": [
+       {
+        "staff_id": "jian",
+        "start": 780,
+        "end": 900
+       }
+      ]
+     },
+     {
+      "proposal_id": "P1",
+      "state": "superseded",
+      "cuts": []
+     }
+    ],
+    "exports": [
+     {
+      "file_name": "coverage-2026-11-09-v8-d05f7b008a3f.ics",
+      "kind": "ics",
+      "version": 8,
+      "state": "published"
+     },
+     {
+      "file_name": "coverage-2026-11-09-v8-dd3601814648.csv",
+      "kind": "csv",
+      "version": 8,
+      "state": "published"
+     }
+    ],
+    "outbox": {
+     "sent": 19
+    },
+    "delivery": [],
+    "ai": {
+     "enabled": false,
+     "status": "unavailable"
+    },
+    "bridge": {
+     "state": "connected",
+     "counters": {
+      "frames": 71,
+      "pings": 53,
+      "pongs": 53,
+      "messages": 17,
+      "addressed": 17,
+      "gaps": 0,
+      "reconnects": 0,
+      "bad_frames": 0,
+      "read_timeouts": 0
+     },
+     "unlinked_seen": 0
+    },
+    "csv_http": 200,
+    "csv": "date,duty,start,end,assignee,status,status_ko,version,generated_at\r\n2026-11-09,일반 문의,09:00,13:00,지안,original,원 근무,8,2026-11-07T21:22:41+09:00\r\n2026-11-09,일반 문의,13:00,15:00,,uncovered,미해결,8,2026-11-07T21:22:41+09:00\r\n2026-11-09,일반 문의,15:00,17:00,태오,confirmed,대체 확정,8,2026-11-07T21:22:41+09:00\r\n2026-11-09,일반 문의,17:00,18:00,태오,original,원 근무,8,2026-11-07T21:22:41+09:00\r\n",
+    "ics_http": 200,
+    "ics_event_lines": [
+     "DTSTART;TZID=Asia/Seoul:20261109T090000",
+     "DTEND;TZID=Asia/Seoul:20261109T130000",
+     "SUMMARY:지안 · 일반 문의",
+     "DESCRIPTION:원 근무 · snapshot v8",
+     "DTSTART;TZID=Asia/Seoul:20261109T150000",
+     "DTEND;TZID=Asia/Seoul:20261109T170000",
+     "SUMMARY:태오 · 일반 문의",
+     "DESCRIPTION:대체 확정 · snapshot v8",
+     "DTSTART;TZID=Asia/Seoul:20261109T170000",
+     "DTEND;TZID=Asia/Seoul:20261109T180000",
+     "SUMMARY:태오 · 일반 문의",
+     "DESCRIPTION:원 근무 · snapshot v8"
+    ]
+   },
+   "server": {
+    "code_commit": "9325ac31d239a70e1b0462365e824efe0ede9f3f",
+    "last_stdout_line": "ShiftPatch stopped",
+    "stderr_lines": 119,
+    "stderr_lines_other_than_requests": [],
+    "exit_code_after_sigterm": 0
+   }
+  }
+ }
+}

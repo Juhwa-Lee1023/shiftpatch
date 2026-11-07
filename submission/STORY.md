@@ -13,7 +13,7 @@ A teammate drops a shift. One colleague can take the first two hours, another ca
 
 ShiftPatch handles that handoff inside a Switch room. Minsu can't cover Monday, November 9, 13:00–17:00. Jian offers 13:00–15:00 and Taeo offers 15:00–17:00. ShiftPatch replies with a proposal that names each part (`Jian: accept P2-a · Taeo: accept P2-b`). Each person accepts their own part and Seoyeon, the manager, confirms. When Jian later drops out, only 13:00–15:00 reopens; Taeo's confirmed hours stay, and the board and CSV export show the same version.
 
-Claude reads a free-form message such as "I might be unable to cover Monday 13–17" and suggests one action. Nothing changes until the sender replies `yes`. Exact commands like `accept P2-a` skip the AI. Code checks every step: only the owner of a part can accept it, only the manager can confirm, and a confirmed plan that later changed cannot be confirmed again.
+Claude reads a free-form message such as "I can do two hours after lunch" and suggests one action. Nothing changes until the sender replies `yes`, and a `yes` written before the message it would confirm is not applied. Exact commands like `accept P2-a` skip the AI; without Claude, the same flow runs on exact commands and a narrow rule reader. Code checks every step: only the owner of a part can accept it, only the manager can confirm, and a confirmed plan that later changed cannot be confirmed again.
 
 This prototype has one fixed four-person team and one day. The manager loads that day's roster from a CSV or a simple roster image (read locally with Apple Vision) and confirms which chat account belongs to each person.
 
@@ -21,7 +21,7 @@ This prototype has one fixed four-person team and one day. The manager loads tha
 PENDING — no publication authorized or performed.
 
 ## Demo video (under 3 minutes, YouTube or Loom; public/unlisted)
-PENDING — a revised local video is prepared; nothing is uploaded.
+PENDING — a 122-second English video cut from a recorded live run of the final code is prepared locally; nothing is uploaded.
 
 ## Optional live demo
 No hosted demo. The application and Switch stack run on this Mac only.
@@ -31,7 +31,7 @@ ShiftPatch is a custom Python agent connected to a self-hosted Switch 0.31.0 ser
 
 Each state change is tied to a room, a message and a linked staff account. Redelivered messages are ignored, replies go out in order, and a reply that cannot be delivered is shown on the board with a button to send it again without repeating the change.
 
-I ran the full handoff on the corrected source through that local stack: a new agent registered with ShiftPatch's own setup command, a new private room, and a roster read from an image and imported for that room. A hedged message went through the real AI reader and was confirmed from the same chat account; then two availability replies, two self-acceptances, the manager's confirmation, Jian's partial dropout, the refused re-confirmation and a CSV export. One developer operated the four roles with synthetic shifts. It was an integration check, not a trial with a working support team.
+I ran the full handoff on the final code (`9325ac3`) twice through that local stack, each time in a new private room with AI reading off, and two more times on the commit just before it. Each person first wrote once to the agent; ShiftPatch listed the sender IDs Switch delivered, and I linked them with `manage.py link`. Then a roster read from an image was imported for that room, and the chat went through a hedged message and `yes`, two availability replies, two self-acceptances, the manager's confirmation, Jian's partial dropout, the refused re-confirmation, and CSV and calendar exports. An earlier run of the same flow, on `c65b2ec`, sent the hedged message through the real AI reader; on the final code the AI reader was checked in the local demo room. One developer operated the four roles with synthetic shifts. It was an integration check, not a trial with a working support team.
 
 ## What did you like about Switch, and what would you improve?
 Switch let the workflow stay in the chat room. The agent received a stable sender identity and message ID, which made it possible to separate a person's acceptance from a manager's confirmation and ignore duplicate deliveries. WebSocket heartbeats kept the connection alive while the AI reader was working.

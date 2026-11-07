@@ -1,71 +1,81 @@
 {
-  "at": "2026-11-07T10:32:58.464Z",
+  "at": "2026-11-07T12:27:07.309Z",
   "command": "node e2e/run.mjs",
   "browser": "system Google Chrome via Playwright channel=chrome (headless)",
   "ai": "off (SHIFTPATCH_AI=off) for determinism",
-  "port": 8862,
-  "duration_ms": 13437,
+  "port": 8855,
+  "duration_ms": 15558,
   "exit_code": 0,
   "steps": [
     {
       "name": "landing renders (ko + en)",
       "ok": true,
-      "ms": 307
+      "ms": 323
     },
     {
       "name": "OCR: ambiguous synthetic image is flagged and import stays blocked",
       "ok": true,
-      "ms": 2948
+      "ms": 1434
     },
     {
       "name": "OCR: unsupported layout falls back to CSV/manual",
       "ok": true,
-      "ms": 799
+      "ms": 818
     },
     {
       "name": "OCR: clear image → confirm account links → explicit approval → board",
       "ok": true,
-      "ms": 1513
+      "ms": 1544
     },
     {
       "name": "chat: tentative inability asks first, then yes opens 13–17",
       "ok": true,
-      "ms": 222
+      "ms": 237
     },
     {
       "name": "chat: invalid clock time and ranged withdrawal change only what was asked",
       "ok": true,
-      "ms": 299
+      "ms": 301
     },
     {
       "name": "chat: availability, proposal, self acceptance, proxy refused, manager confirms",
       "ok": true,
-      "ms": 749
+      "ms": 755
     },
     {
       "name": "board + CSV show the same confirmed coverage",
       "ok": true,
-      "ms": 311
+      "ms": 280
     },
     {
       "name": "after confirmation Jian drops 13–15: only that interval reopens, old plan cannot re-confirm",
       "ok": true,
-      "ms": 507
+      "ms": 531
     },
     {
       "name": "board: an undelivered reply is shown and sent again without changing the record",
       "ok": true,
-      "ms": 2304
+      "ms": 2014
     },
     {
       "name": "Switch room review lists the linked participant IDs and blocks an unlinked person",
       "ok": true,
-      "ms": 1413
+      "ms": 1430
+    },
+    {
+      "name": "AI off: the room's own Korean script, clicked line by line, reaches split confirm and reopens only Jian 13–15",
+      "ok": true,
+      "ms": 1920
+    },
+    {
+      "name": "AI off: the same script in English reaches the same result",
+      "ok": true,
+      "ms": 1937
     },
     {
       "name": "narrow viewport and connection page",
       "ok": true,
-      "ms": 171
+      "ms": 134
     },
     {
       "name": "no browser console errors",
@@ -74,6 +84,138 @@
     }
   ],
   "console_errors": [],
+  "script_runs": {
+    "ko": [
+      {
+        "line": 1,
+        "sent": "@ShiftPatch 월요일 13~17시 고객문의 응대 못 할 것 같아요",
+        "reply": "민수님, 11/9(월) 13:00–17:00을 '불가'로 기록할까요? 반영하면 맡은 시간이 빈 시간으로 표시됩니다. 맞으면 `네`, 아니면 `아니요`라고 답해 주세요. (Q1, 21:10까지) · 규칙으로 읽은 내용"
+      },
+      {
+        "line": 2,
+        "sent": "@ShiftPatch 네",
+        "reply": "11/9(월) 13:00–17:00이 비었습니다. 지금 이 시간을 맡을 수 있다고 답한 사람은 없습니다. 사유를 입력할 필요는 없어요."
+      },
+      {
+        "line": 3,
+        "sent": "@ShiftPatch 가능 2026-11-09 13:00-15:00",
+        "reply": "지안님 11/9(월) 13:00–15:00 가능으로 기록했습니다. 가능 기록만으로는 근무를 맡은 것이 아닙니다.\n새 대체안 P1: 지안 13:00–15:00.\n지안: `수락 P1-a`\n서연님이 `확정 P1`을 보내면 근무표에 반영됩니다."
+      },
+      {
+        "line": 4,
+        "skipped": "지안: 건너뜀: 3번이 정확한 명령이라 확인 질문이 없음"
+      },
+      {
+        "line": 5,
+        "sent": "@ShiftPatch 가능 2026-11-09 15:00-17:00",
+        "reply": "태오님 11/9(월) 15:00–17:00 가능으로 기록했습니다. 가능 기록만으로는 근무를 맡은 것이 아닙니다.\n새 대체안 P2: 지안 13:00–15:00, 태오 15:00–17:00.\n지안: `수락 P2-a` · 태오: `수락 P2-b`\n서연님이 `확정 P2`를 보내면 근무표에 반영됩니다."
+      },
+      {
+        "line": 6,
+        "sent": "@ShiftPatch 수락 P2-a",
+        "reply": "지안님이 P2-a 11/9(월) 13:00–15:00을 수락했습니다. 남은 수락: 태오."
+      },
+      {
+        "line": 7,
+        "sent": "@ShiftPatch 수락 P2-b",
+        "reply": "태오님이 P2-b 11/9(월) 15:00–17:00을 수락했습니다. 필요한 수락이 모두 모였습니다. 서연님이 `확정 P2`를 보내면 근무표에 반영됩니다."
+      },
+      {
+        "line": 8,
+        "skipped": "서연: 건너뜀: AI 해석이 꺼져 있음"
+      },
+      {
+        "line": 9,
+        "sent": "@ShiftPatch 확정 P2",
+        "reply": "P2를 확정했습니다: 지안 13:00–15:00, 태오 15:00–17:00. 빈 시간이 없습니다."
+      },
+      {
+        "line": 10,
+        "sent": "@ShiftPatch 내보내기",
+        "reply": "coverage-2026-11-09-v7-d48798b58935.csv 파일을 만들었습니다 (판본 #7). 이 Mac의 exports 폴더와 현황표의 내보내기 목록에 있어요."
+      },
+      {
+        "line": 11,
+        "sent": "@ShiftPatch 불가 2026-11-09 13:00-15:00",
+        "reply": "11/9(월) 13:00–15:00이 다시 비었습니다. 태오님의 15:00–17:00은 유지됩니다. 지금 이 시간을 맡을 수 있다고 답한 사람은 없습니다. 사유를 입력할 필요는 없어요."
+      },
+      {
+        "line": 12,
+        "sent": "@ShiftPatch 확정 P2",
+        "reply": "P2는 앞서 확정됐습니다. 그 뒤 지안님의 13:00–15:00이 빠져서 P2를 다시 확정하지 않았습니다. 상태는 그대로예요. 비어 있는 시간은 새 대체안이 필요합니다. 누군가 가능 시간을 보내면 새 안이 올라와요."
+      },
+      {
+        "line": 13,
+        "sent": "@ShiftPatch 표",
+        "reply": "11/9(월) 담당 현황 (판본 #8)\n09:00–13:00  지안  원 근무\n13:00–15:00  —  미해결\n15:00–17:00  태오  대체 확정\n17:00–18:00  태오  원 근무\n현황표: http://127.0.0.1:8855/?room=local-demo#/board (이 Mac에서만 열립니다)"
+      }
+    ],
+    "en": [
+      {
+        "line": 1,
+        "sent": "@ShiftPatch I might be unable to cover Monday 13-17",
+        "reply": "Minsu, should I mark Mon 11/9 13:00–17:00 unavailable? Your hours there would show as uncovered. Reply `yes` or `no`. (Q1, until 21:10) · read by rule"
+      },
+      {
+        "line": 2,
+        "sent": "@ShiftPatch yes",
+        "reply": "Mon 11/9 13:00–17:00 is now uncovered. Nobody has said they can take it yet."
+      },
+      {
+        "line": 3,
+        "sent": "@ShiftPatch available 2026-11-09 13:00-15:00",
+        "reply": "Recorded Jian as available Mon 11/9 13:00–15:00. Being available is not the same as taking the shift.\nNew proposal P1: Jian 13:00–15:00.\nJian: `accept P1-a`\nThen Seoyeon sends `confirm P1`."
+      },
+      {
+        "line": 4,
+        "skipped": "Jian: skipped: line 3 is already exact, no question to answer"
+      },
+      {
+        "line": 5,
+        "sent": "@ShiftPatch available 2026-11-09 15:00-17:00",
+        "reply": "Recorded Taeo as available Mon 11/9 15:00–17:00. Being available is not the same as taking the shift.\nNew proposal P2: Jian 13:00–15:00, Taeo 15:00–17:00.\nJian: `accept P2-a` · Taeo: `accept P2-b`\nThe"
+      },
+      {
+        "line": 6,
+        "sent": "@ShiftPatch accept P2-a",
+        "reply": "Jian accepted P2-a Mon 11/9 13:00–15:00. Still waiting for: Taeo."
+      },
+      {
+        "line": 7,
+        "sent": "@ShiftPatch accept P2-b",
+        "reply": "Taeo accepted P2-b Mon 11/9 15:00–17:00. All parts are accepted. Waiting for Seoyeon to send `confirm P2`."
+      },
+      {
+        "line": 8,
+        "skipped": "Seoyeon: skipped: AI reading is off"
+      },
+      {
+        "line": 9,
+        "sent": "@ShiftPatch confirm P2",
+        "reply": "Confirmed P2: Jian 13:00–15:00, Taeo 15:00–17:00. No gaps remain."
+      },
+      {
+        "line": 10,
+        "sent": "@ShiftPatch export",
+        "reply": "Created coverage-2026-11-09-v7-8fced2102e22.csv (version #7). It is in this Mac's exports folder and the board's export list."
+      },
+      {
+        "line": 11,
+        "sent": "@ShiftPatch unavailable 2026-11-09 13:00-15:00",
+        "reply": "Mon 11/9 13:00–15:00 is uncovered again. Taeo's 15:00–17:00 stays confirmed. Nobody has said they can take it yet."
+      },
+      {
+        "line": 12,
+        "sent": "@ShiftPatch confirm P2",
+        "reply": "P2 was confirmed earlier. Since then Jian's 13:00–15:00 reopened, so P2 was not confirmed again. Nothing changed. The reopened hours need a new proposal; it appears when someone replies with hours the"
+      },
+      {
+        "line": 13,
+        "sent": "@ShiftPatch status",
+        "reply": "Coverage Mon 11/9 (version #8)\n09:00–13:00  Jian  original\n13:00–15:00  —  uncovered\n15:00–17:00  Taeo  confirmed\n17:00–18:00  Taeo  original\nBoard: http://127.0.0.1:8855/?room=local-demo#/board (open"
+      }
+    ]
+  },
   "server_shutdown": {
     "exit": {
       "code": 0,
