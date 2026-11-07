@@ -20,9 +20,12 @@ The same patterns were in production code, plus two more. Fixed in `9dd3a1b`:
 | same with `-X dev -W error::ResourceWarning` | 0 | 35.0 s | 136 OK, no `Exception ignored` line |
 | the 37 socket/thread tests, `-X dev -W always::ResourceWarning`, three times | 0, 0, 0 | 29–30 s each | 37 OK each time, no warning line |
 | `node e2e/run.mjs` | 0 | 11.0 s | **13/13 steps**; server exit 0 on SIGTERM, `ShiftPatch stopped`, stderr only request lines (ResourceWarnings on) |
+| `node e2e/run.mjs` again, after the screenshot fix below | 0 | 13.7 s | 13/13, same clean server exit; the screenshots in `docs/screenshots/` come from this run |
 | live smoke check: `run.py` with a new data dir connected to local Switch 0.31.0 as `shiftpatch2`, then SIGTERM | 0 | 8 s | connected in 4.1 s, 4 pings answered, nothing posted, stopped in 0.01 s, no stderr warnings; the demo instance on 8766 stayed connected with 0 reconnects |
 
 The new file `tests/test_resource_cleanup.py` (11 tests) checks the resource itself: the socket fd after a refused upgrade, a wrong accept header and an early close; the HTTPError body after a 401 in `post_reply` and `manage.post`; the fixture's listening socket; that `stop()` joins and closes, including a reader blocked with no read timeout; that `App.close()` ends every thread; and that `run.py`, connected to the contract double, exits 0 on SIGTERM with nothing on stderr but request lines. Run against the pre-fix modules, 10 of the 11 fail. The fixture test passes there because the fixture stays fixed. The contract and app-wiring tests now assert in tearDown that `stop()` finished.
+
+The first E2E run at `9dd3a1b` saved a `10-connect-blocked.png` whose top part repeated halfway down. The full-page capture came right after the viewport went back from phone width. The E2E now waits two animation frames before that capture. The rerun's image is correct, though one run does not prove the race is gone.
 
 A Python warning is not proof of a production leak, and its absence is not proof there is none. These runs show only that this suite and the E2E no longer leave sockets, error bodies or threads for the garbage collector.
 

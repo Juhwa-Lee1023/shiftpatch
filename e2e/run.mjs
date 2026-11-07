@@ -258,6 +258,9 @@ try {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto(BASE + "/#/connect");
     await page.getByText("막힘(BLOCKED)").waitFor();
+    // Let layout settle after the viewport change; a full-page capture taken
+    // at once sometimes repeated the top of the page halfway down.
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
     await shot("10-connect-blocked.png");
   });
 
