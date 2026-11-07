@@ -529,7 +529,8 @@ def open_pendings(c, room_id, staff_id, now_ms):
 def pick_pending(c, room_id, staff_id, q_id, now_ms, sender: str | None = None):
     """Resolve which open confirmation a bare yes/no refers to. `now_ms` is
     the receive time of the yes/no, the same clock the question was set on.
-    A question asked to another chat account is closed, never answered."""
+    A question asked to another chat account is never answered by this one
+    (import_switch_links closes such questions when it relinks)."""
     live = open_pendings(c, room_id, staff_id, now_ms)
     if sender is not None:
         foreign = [r for r in live if r["asked_user"] is not None and r["asked_user"] != sender]
