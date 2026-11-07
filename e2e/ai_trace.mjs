@@ -45,6 +45,12 @@ try {
   await page.locator(".banner").waitFor();
   await page.goto(BASE + "/#/room");
   await page.locator("#msg").waitFor();
+  // With AI on, the room shows the AI script: line 3 in words, lines 4 and 8 enabled.
+  const mode = await page.locator("#script-mode").innerText();
+  const lines = await page.locator(".script li button").allInnerTexts();
+  const scriptOk = mode.includes("AI 해석이 켜져") && lines[2].includes("점심 먹고 두 시간은 돼요") && lines[3].includes("네") && lines[7].includes("둘 다 된대요");
+  replies.push({ check: "AI-on script shown", mode, line3: lines[2], line4: lines[3], line8: lines[7], ok: scriptOk });
+  if (!scriptOk) exitCode = 1;
   await send("민수", "@ShiftPatch 월요일 13~17시 고객문의 응대 못 할 것 같아요", ["'불가'로 기록할까요", "AI가 읽은 내용"]);
   await send("민수", "@ShiftPatch 네", ["13:00–17:00이 비었습니다"]);
   await send("지안", "@ShiftPatch 점심 먹고 두 시간은 돼요", ["13:00–15:00 가능으로 기록할까요", "AI가 읽은 내용"]);

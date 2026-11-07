@@ -269,9 +269,11 @@ def import_switch_links(store, room_id, links: dict):
                       (room_id, pid, sid, rev))
         c.execute("DELETE FROM unlinked_seen WHERE room_id=? AND platform_user_id IN "
                   "(SELECT platform_user_id FROM links WHERE room_id=?)", (room_id, room_id))
-        if changed and old:
+        # A person linked for the first time is not a change; a relink (or unlink) is.
+        relinked = sorted(sid for sid in changed if sid in old)
+        if relinked:
             engine.log(c, room_id, rm["version"], room_now_ms(rm), "links_changed", None,
-                       staff=sorted(changed), closed_questions=closed)
+                       staff=relinked, closed_questions=closed)
     return {"linked": len(links), "closed_questions": closed}
 
 

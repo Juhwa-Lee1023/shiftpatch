@@ -156,6 +156,7 @@ tr.uncovered td.assignee { color: #8a3a08; font-weight: 700; }
 .senders { width: 100%; border-collapse: collapse; margin: 8px 0 16px; }
 .senders th, .senders td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
 .id { word-break: break-all; font-size: 14px; }
+.senders th, .senders td.num:not(.id) { white-space: nowrap; }
 .src { position: relative; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; background: #fff; }
 .src img { display: block; width: 100%; height: auto; }
 .box { position: absolute; border: 2px solid rgba(45, 71, 87, .55); border-radius: 2px; pointer-events: none; }

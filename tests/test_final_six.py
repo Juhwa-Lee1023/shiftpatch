@@ -430,6 +430,27 @@ class ObservedSenderIds(Base):
             tmp.cleanup()
 
 
+class LinkHistory(Base):
+    """Linking people one at a time with `link` is not a change of their
+    chat account; only a relink is written to the history."""
+
+    def test_first_links_are_not_logged_as_changes_but_a_relink_is(self):
+        roster.create_room(self.store, ROOM, "switch", "switch")
+        self.room = ROOM
+        now = int(time.time() * 1000)
+        with self.store.tx() as c:
+            for pid, name in (("@a-seoyeon:x", "seoyeon"), ("@a-minsu:x", "minsu"), ("@b-minsu:x", "minsu")):
+                engine.note_unlinked(c, ROOM, pid, name, now)
+        roster.link_observed_sender(self.store, ROOM, "@a-seoyeon:x", "seoyeon", now_ms=now)
+        roster.link_observed_sender(self.store, ROOM, "@a-minsu:x", "minsu", now_ms=now)
+        self.assertNotIn("links_changed", self.history_kinds())
+        roster.link_observed_sender(self.store, ROOM, "@b-minsu:x", "minsu", now_ms=now)
+        with self.store.snapshot() as c:
+            rows = [json.loads(r["detail_json"]) for r in c.execute("SELECT detail_json FROM history WHERE room_id=? "
+                                                                    "AND kind='links_changed'", (ROOM,))]
+        self.assertEqual([r["staff"] for r in rows], [["minsu"]])
+
+
 class ManageSendersCli(unittest.TestCase):
     """Fix 4: `manage.py senders` / `link` against a temp data dir and temp
     config (never the private config/switch.local.json)."""
