@@ -39,6 +39,7 @@ class Dispatcher:
         self.store, self.senders, self.clock = store, senders, clock  # kind -> callable(room_id, row)
         self._stop = threading.Event()
         self._lock = threading.Lock()
+        self._thread = None
         self.name = uuid.uuid4().hex[:12]
 
     def run_once(self) -> int:
@@ -117,10 +118,21 @@ class Dispatcher:
             self._stop.wait(interval)
 
     def start(self):
-        threading.Thread(target=self.loop, daemon=True, name="outbox").start()
+        self._stop.clear()
+        self._thread = threading.Thread(target=self.loop, daemon=True, name="outbox")
+        self._thread.start()
 
-    def stop(self):
+    def stop(self, timeout=15.0) -> bool:
+        """Stop the loop and wait for a pass in progress to finish (a send can
+        take up to its HTTP timeout). Returns False if it is still running."""
         self._stop.set()
+        t, self._thread = self._thread, None
+        if t is not None and t is not threading.current_thread():
+            t.join(timeout)
+            if t.is_alive():
+                self._thread = t
+                return False
+        return True
 
 
 def delivery_view(c, room_id, now_ms):

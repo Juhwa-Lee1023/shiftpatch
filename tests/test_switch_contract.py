@@ -38,9 +38,11 @@ class SwitchContract(Base):
         self.dispatch = Dispatcher(self.store, {"switch": lambda room_id, row: self.bridge.post_reply(row["body"])})
 
     def tearDown(self):
-        self.bridge.stop()
-        self.fake.close()
-        super().tearDown()
+        try:
+            self.assertTrue(self.bridge.stop())
+        finally:
+            self.fake.close()
+            super().tearDown()
 
     def start(self):
         self.bridge.start()

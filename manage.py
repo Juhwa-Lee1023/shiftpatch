@@ -49,7 +49,8 @@ def post(url, body, bearer):
         with urllib.request.urlopen(req, timeout=15) as r:
             return r.status, json.loads(r.read() or b"{}")
     except urllib.error.HTTPError as e:
-        return e.code, {"error": e.read().decode("utf-8", "replace")[:200]}
+        with e:
+            return e.code, {"error": e.read().decode("utf-8", "replace")[:200]}
 
 
 def main():

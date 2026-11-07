@@ -432,9 +432,11 @@ class C09BridgeLifecycle(Base):
         self.bridge = SwitchBridge(self.store, self.agent, self.cfg, read_timeout=0.8)
 
     def tearDown(self):
-        self.bridge.stop()
-        self.fake.close()
-        super().tearDown()
+        try:
+            self.assertTrue(self.bridge.stop())
+        finally:
+            self.fake.close()
+            super().tearDown()
 
     def start(self):
         self.bridge.start()

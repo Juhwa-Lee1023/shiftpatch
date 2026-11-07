@@ -162,7 +162,8 @@ class SwitchBridge:
             with urllib.request.urlopen(req, timeout=timeout) as r:
                 return r.status, r.read().decode("utf-8", "replace")
         except urllib.error.HTTPError as e:
-            return e.code, e.read().decode("utf-8", "replace")[:300]
+            with e:                       # the error owns the response body and its socket
+                return e.code, e.read().decode("utf-8", "replace")[:300]
 
     def probe(self):
         try:
@@ -194,11 +195,22 @@ class SwitchBridge:
             t.start()
             self._threads.append(t)
 
-    def stop(self):
+    def stop(self, timeout=5.0) -> bool:
+        """Stop both threads and wait for them. Returns False if one is still
+        running after `timeout` (e.g. a handler retry or a slow connect);
+        it exits on its own once that call returns. The reader thread owns
+        the socket and closes it; this only interrupts it."""
         self._stop.set()
         self._q.put(None)
-        if self._ws:
-            self._ws.close()
+        ws = self._ws
+        if ws is not None:
+            ws.interrupt()
+        end = time.monotonic() + timeout
+        for t in self._threads:
+            if t is not threading.current_thread():
+                t.join(max(0.0, end - time.monotonic()))
+        self._threads = [t for t in self._threads if t.is_alive()]
+        return not self._threads
 
     def _run(self):
         """Reader thread. Every way out of _read_loop ends in a state other
@@ -233,8 +245,9 @@ class SwitchBridge:
             except Exception as e:  # noqa: BLE001 - never leave a dead reader marked connected
                 self.state, self.detail = "reconnecting", f"reader {type(e).__name__}"
             finally:
-                if self._ws is not None:
-                    self._ws.close()
+                ws, self._ws = self._ws, None     # this thread owns the socket: close it here
+                if ws is not None:
+                    ws.close()
                 if self.state == "connected":
                     self.state = "reconnecting"
             if self.halted:
@@ -322,8 +335,9 @@ class SwitchBridge:
         self.halted = {"sequence": seq, "error": error, "cursor": self.cursor}
         self.state = "halted"
         self._stop.set()
-        if self._ws:
-            self._ws.close()
+        ws = self._ws
+        if ws is not None:
+            ws.interrupt()                    # the reader closes it on its way out
 
     def _handle_domain(self, data):
         if data.get("type") != "message" or data.get("room_id") != self.cfg.room_id:

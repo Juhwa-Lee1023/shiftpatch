@@ -29,10 +29,11 @@ class SwitchThroughApp(unittest.TestCase):
         roster.import_roster(self.app.store, ROOM, ROWS, MAPPING, set(MAPPING), True, "test")
 
     def tearDown(self):
-        self.app.bridge.stop()
-        self.app.dispatcher.stop()
-        self.fake.close()
-        self.tmp.cleanup()
+        try:
+            self.assertTrue(self.app.close())    # threads joined before the data dir goes away
+        finally:
+            self.fake.close()
+            self.tmp.cleanup()
 
     def test_message_in_switch_room_round_trips(self):
         self.app.start_background()

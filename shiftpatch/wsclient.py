@@ -32,6 +32,8 @@ class WebSocket:
     def __init__(self, sock):
         self.sock = sock
         self._send_lock = threading.Lock()
+        self._close_lock = threading.Lock()
+        self._closed = False
         self._buf = b""
 
     @classmethod
@@ -42,7 +44,23 @@ class WebSocket:
         secure = u.scheme == "wss"
         port = u.port or (443 if secure else 80)
         raw = socket.create_connection((u.hostname, port), timeout=timeout)
-        sock = ssl.create_default_context().wrap_socket(raw, server_hostname=u.hostname) if secure else raw
+        sock = raw
+        try:
+            if secure:
+                sock = ssl.create_default_context().wrap_socket(raw, server_hostname=u.hostname)
+            ws = cls._handshake(sock, u, headers)
+            sock.settimeout(read_timeout)
+        except BaseException:
+            # Refused upgrade, bad accept header, TLS error, timeout: the
+            # caller never gets a WebSocket, so the socket is ours to close.
+            sock.close()
+            if sock is not raw:
+                raw.close()
+            raise
+        return ws
+
+    @classmethod
+    def _handshake(cls, sock, u, headers):
         key = base64.b64encode(os.urandom(16)).decode()
         path = (u.path or "/") + (f"?{u.query}" if u.query else "")
         host = u.hostname + (f":{u.port}" if u.port else "")
@@ -69,7 +87,6 @@ class WebSocket:
             raise HandshakeError(status, "bad Sec-WebSocket-Accept")
         ws = cls(sock)
         ws._buf = rest
-        sock.settimeout(read_timeout)
         return ws
 
     def _read(self, n: int) -> bytes:
@@ -138,12 +155,31 @@ class WebSocket:
     def send_text(self, text: str):
         self._send(0x1, text.encode("utf-8"))
 
+    def interrupt(self, code: int = 1000):
+        """For a thread that does not own the socket: send a close frame and
+        shut the connection down, which makes a blocked recv() in the owning
+        thread return. The fd stays open; only the owner calls close().
+        (Closing it here could leave the reader blocked on macOS and frees
+        the fd number while the reader may still be using it.)"""
+        with self._close_lock:
+            if self._closed:
+                return
+            try:
+                self._send(0x8, struct.pack(">H", code))
+            except OSError:
+                pass
+            try:
+                self.sock.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
+
     def close(self, code: int = 1000):
-        try:
-            self._send(0x8, struct.pack(">H", code))
-        except OSError:
-            pass
-        try:
-            self.sock.close()
-        except OSError:
-            pass
+        """Owner only. Safe to call more than once."""
+        self.interrupt(code)
+        with self._close_lock:
+            if not self._closed:
+                self._closed = True
+                try:
+                    self.sock.close()
+                except OSError:
+                    pass

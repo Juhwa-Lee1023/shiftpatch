@@ -94,11 +94,16 @@ class FakeSwitch:
         self.httpd = ThreadingHTTPServer(("127.0.0.1", 0), H)
         self.port = self.httpd.server_address[1]
         self.url = f"http://127.0.0.1:{self.port}"
-        threading.Thread(target=self.httpd.serve_forever, daemon=True).start()
+        self._serve = threading.Thread(target=self.httpd.serve_forever, daemon=True)
+        self._serve.start()
 
     def close(self):
+        """Drop the live socket, stop accepting, and close the listening
+        socket. shutdown() alone leaves the listener open until GC."""
         self.drop(1001)
         self.httpd.shutdown()
+        self.httpd.server_close()
+        self._serve.join(5)
 
     # --------------------------------------------------------------- socket
     def _ws(self, h, q):

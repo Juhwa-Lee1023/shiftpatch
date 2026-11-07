@@ -22,6 +22,8 @@ The first screen offers **Start with the synthetic CSV** or an image upload (`fi
 
 Data goes to `./data/` (SQLite and `exports/`), or to `--data <dir>`. `SHIFTPATCH_AI=off` turns off the AI reader. The UI has a 한국어 / English toggle.
 
+Ctrl-C or `kill <pid>` stops it: the Switch connection is closed first, a reply that is being sent gets up to 15 s to finish, and the last line printed is `ShiftPatch stopped`.
+
 ## Connect it to a local Switch
 
 This is the path used for the corrected-source live check on 2026-11-07 (agent `shiftpatch2`, a new private room; [report](qa/LIVE_SWITCH_REPORT.md)). No key or password is in this repository.
@@ -71,16 +73,16 @@ Korean works too (`가능 13-15`, `수락 P2-a`, `확정 P2`, `불가 …`, `표
 | Corrected source on live local Switch 0.31.0 + Mattermost | One run, synthetic team, one operator. New agent and room. Roster imported through the image review screen (Apple Vision, synthetic fixture). Flow: AI-read hedged message → `yes Q1` → bad clock time refused → two availabilities → two self-acceptances → confirm → Jian drops 13–15 → old confirm refused → export → status. Final version 8, only 13–15 uncovered. | [qa/LIVE_SWITCH_REPORT.md](qa/LIVE_SWITCH_REPORT.md) |
 | `manage.py register-agent`, `set-room`, `import-links` | Ran against that server | same |
 | `manage.py set-addressing` | Server answered HTTP 403; Gateway rule used instead | same |
-| Unit and integration tests | 125 pass (the original 89 plus 36 for the 2026-11-07 review findings) | [qa/TEST_REPORT.md](qa/TEST_REPORT.md) |
+| Unit and integration tests | 136 pass (the original 89, 36 for the 2026-11-07 review findings, 11 for socket and thread cleanup), with no ResourceWarning even when warnings are made errors | [qa/TEST_REPORT.md](qa/TEST_REPORT.md) |
 | Reconnect, malformed frames, silent socket, gap, eviction, handler-failure halt | Contract double and fake sockets only, not triggered on a live server | `tests/test_switch_contract.py`, `tests/test_critique_regressions.py` |
-| Browser flow in the local demo room, delivery retry, Switch-room review screen | 13/13 E2E steps | [qa/e2e-result.json](qa/e2e-result.json) |
+| Browser flow in the local demo room, delivery retry, Switch-room review screen | 13/13 E2E steps; the server then exits 0 on SIGTERM with nothing on stderr but its request log | [qa/e2e-result.json](qa/e2e-result.json) |
 | Managed/cloud Switch; Slack, Teams, Discord, Telegram | Not tested | — |
 | Real staff, public deployment, public repository | Not done | — |
 
 ## Tests
 
 ```bash
-python3 -m unittest discover -s tests          # 125 tests
+python3 -m unittest discover -s tests          # 136 tests
 npm install && node e2e/run.mjs                # browser E2E, system Chrome via Playwright, AI off
 node e2e/ai_trace.mjs                          # free-text path with the real AI reader
 python3 qa/ai_live_check.py                    # 7 synthetic sentences through the CLI reader

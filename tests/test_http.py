@@ -33,9 +33,12 @@ class Http(unittest.TestCase):
         self.base = f"http://127.0.0.1:{self.port}"
 
     def tearDown(self):
-        self.srv.shutdown()
-        self.srv.server_close()
-        self.tmp.cleanup()
+        try:
+            self.srv.shutdown()
+            self.srv.server_close()
+            self.assertTrue(self.app.close())
+        finally:
+            self.tmp.cleanup()
 
     def req(self, method, path, body=None, token=True, host=None, ctype="application/json", origin=None):
         data = body if isinstance(body, (bytes, type(None))) else json.dumps(body).encode()
@@ -51,7 +54,8 @@ class Http(unittest.TestCase):
             with urllib.request.urlopen(r, timeout=10) as resp:
                 return resp.status, resp.read()
         except urllib.error.HTTPError as e:
-            return e.code, e.read()
+            with e:
+                return e.code, e.read()
 
     def j(self, *a, **k):
         code, body = self.req(*a, **k)

@@ -62,6 +62,15 @@ class App:
         if self.bridge is not None:
             self.bridge.start()
 
+    def close(self) -> bool:
+        """Stop the Switch connection first (no new messages), then the reply
+        loop, then drop unapproved roster drafts. True when every background
+        thread has exited."""
+        stopped = self.bridge.stop() if self.bridge is not None else True
+        stopped = self.dispatcher.stop() and stopped
+        self.drafts.discard_all()
+        return stopped
+
     def export(self, room_id, kind):
         try:
             with self.store.snapshot() as c:
@@ -372,13 +381,17 @@ def main(argv=None):
     app = App(Path(a.data), a.port, switch_config=Path(a.switch_config))
     app.start_background()
     srv = ThreadingHTTPServer(("127.0.0.1", a.port), make_handler(app))
-    signal.signal(signal.SIGTERM, lambda *_: (app.drafts.discard_all(), sys.exit(0)))
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
     print(f"ShiftPatch on http://127.0.0.1:{a.port}/  (data: {a.data}; AI: {app.ai.status()['status']}; "
           f"Switch: {app.switch_status()['state']})", flush=True)
     try:
         srv.serve_forever()
+    except KeyboardInterrupt:
+        pass
     finally:
-        app.drafts.discard_all()
+        srv.server_close()
+        clean = app.close()
+        print("ShiftPatch stopped" + ("" if clean else " (a background send was still running)"), flush=True)
 
 
 if __name__ == "__main__":

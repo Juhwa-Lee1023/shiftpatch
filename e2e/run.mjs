@@ -19,10 +19,14 @@ const steps = [];
 const t0 = Date.now();
 
 const server = spawn("python3", [path.join(APP, "run.py"), "--port", String(PORT), "--data", DATA,
-  "--switch-config", path.join(DATA, "none.json")], { env: { ...process.env, SHIFTPATCH_AI: "off" }, stdio: ["ignore", "pipe", "pipe"] });
+  "--switch-config", path.join(DATA, "none.json")],
+  { env: { ...process.env, SHIFTPATCH_AI: "off", PYTHONWARNINGS: "always::ResourceWarning" }, stdio: ["ignore", "pipe", "pipe"] });
+let serverOut = "", serverErr = "";
+server.stderr.on("data", (d) => { serverErr += String(d); });
+const serverExit = new Promise((res) => server.on("exit", (code, signal) => res({ code, signal })));
 await new Promise((res, rej) => {
   const to = setTimeout(() => rej(new Error("server did not start")), 15000);
-  server.stdout.on("data", (d) => { if (String(d).includes("ShiftPatch on")) { clearTimeout(to); res(); } });
+  server.stdout.on("data", (d) => { serverOut += String(d); if (String(d).includes("ShiftPatch on")) { clearTimeout(to); res(); } });
 });
 
 const browser = await chromium.launch({ channel: "chrome", headless: true });
@@ -267,8 +271,16 @@ try {
   await browser.close();
   server.kill("SIGTERM");
 }
+// The server must stop cleanly on SIGTERM: exit 0, a "stopped" line, and
+// nothing on stderr but its request log (ResourceWarnings are switched on).
+const exited = await Promise.race([serverExit, new Promise((r) => setTimeout(() => r({ code: null, signal: "timeout" }), 20000))]);
+const unexpected = serverErr.split("\n").filter((l) => l.trim() && !/^(GET|POST|PUT|DELETE|HEAD|OPTIONS) \//.test(l));
+const shutdown = { exit: exited, stopped_line: serverOut.includes("ShiftPatch stopped"), stderr_unexpected: unexpected.slice(0, 20) };
+if (exited.code !== 0 || !shutdown.stopped_line || unexpected.length) exitCode = 1;
 const result = { at: new Date().toISOString(), command: "node e2e/run.mjs", browser: "system Google Chrome via Playwright channel=chrome (headless)",
-  ai: "off (SHIFTPATCH_AI=off) for determinism", port: PORT, duration_ms: Date.now() - t0, exit_code: exitCode, steps, console_errors: consoleErrors };
+  ai: "off (SHIFTPATCH_AI=off) for determinism", port: PORT, duration_ms: Date.now() - t0, exit_code: exitCode, steps, console_errors: consoleErrors,
+  server_shutdown: shutdown };
 writeFileSync(path.join(APP, "qa", "e2e-result.json"), JSON.stringify(result, null, 2) + "\n");
-console.log(JSON.stringify({ exit_code: exitCode, passed: steps.filter((s) => s.ok).length, failed: steps.filter((s) => !s.ok) }, null, 1));
+console.log(JSON.stringify({ exit_code: exitCode, passed: steps.filter((s) => s.ok).length, failed: steps.filter((s) => !s.ok),
+  server_shutdown: shutdown }, null, 1));
 process.exit(exitCode);
