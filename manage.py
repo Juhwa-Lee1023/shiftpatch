@@ -89,6 +89,10 @@ def main():
         status, out = post(f"{cfg['base_url']}/agents/{cfg['agent_id']}/ops/update_agent_detail",
                            {"agent_id": cfg["agent_id"], "addressing": a.mode}, cfg["api_key"])
         print(f"HTTP {status}")
+        if not 200 <= status < 300:
+            # Seen on local Switch 0.31.0: 403 with the agent's own key. Set the room's
+            # addressing rule in the Gateway instead (docs/LOCAL_SWITCH_SETUP.md).
+            sys.exit("set-addressing was refused; set the addressing rule in the Switch Gateway instead")
         return
     if a.cmd == "set-room":
         cfg["room_id"] = a.room_id
