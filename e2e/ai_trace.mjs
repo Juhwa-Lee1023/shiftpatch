@@ -1,7 +1,7 @@
 // Browser run of the free-form path with the REAL AI reader on (local
 // Claude CLI login). Writes qa/e2e-ai-result.json and one screenshot.
 // Usage: node e2e/ai_trace.mjs
-import { chromium } from "playwright";
+import { chromium } from "./pw.mjs";
 import { spawn } from "node:child_process";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -45,8 +45,8 @@ try {
   await page.locator(".banner").waitFor();
   await page.goto(BASE + "/#/room");
   await page.locator("#msg").waitFor();
-  await send("민수", "@ShiftPatch 내일 13~17시 고객문의 응대 못 할 것 같아요", ["'불가'로 기록할까요", "AI가 읽은 내용"]);
-  await send("민수", "@ShiftPatch 네", ["다시 비었습니다"]);
+  await send("민수", "@ShiftPatch 월요일 13~17시 고객문의 응대 못 할 것 같아요", ["'불가'로 기록할까요", "AI가 읽은 내용"]);
+  await send("민수", "@ShiftPatch 네", ["13:00–17:00이 비었습니다"]);
   await send("지안", "@ShiftPatch 점심 먹고 두 시간은 돼요", ["13:00–15:00 가능으로 기록할까요", "AI가 읽은 내용"]);
   await send("지안", "@ShiftPatch 네", ["가능으로 기록했습니다"]);
   await send("서연", "@ShiftPatch 둘 다 된대요", ["대신 기록할 수 없어요"]);

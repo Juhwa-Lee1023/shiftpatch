@@ -132,6 +132,7 @@ CREATE TABLE IF NOT EXISTS pending (
   expires_ms INTEGER NOT NULL,
   state TEXT NOT NULL CHECK (state IN ('open','applied','declined','stale','superseded','expired')),
   created_ms INTEGER NOT NULL,
+  asked_user TEXT,
   PRIMARY KEY (room_id, q_id)
 );
 CREATE TABLE IF NOT EXISTS watermarks (
@@ -178,7 +179,10 @@ CREATE TABLE IF NOT EXISTS outbox (
   attempts INTEGER NOT NULL DEFAULT 0,
   last_error TEXT,
   created_ms INTEGER NOT NULL,
-  sent_ms INTEGER
+  sent_ms INTEGER,
+  next_attempt_ms INTEGER NOT NULL DEFAULT 0,
+  claim TEXT,
+  claimed_until_ms INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS exports (
   export_id TEXT PRIMARY KEY,
@@ -198,6 +202,14 @@ CREATE TABLE IF NOT EXISTS bridge_state (
 );
 """
 
+# Columns added after the first release; ALTER TABLE keeps existing data files.
+MIGRATIONS = [
+    ("pending", "asked_user", "TEXT"),
+    ("outbox", "next_attempt_ms", "INTEGER NOT NULL DEFAULT 0"),
+    ("outbox", "claim", "TEXT"),
+    ("outbox", "claimed_until_ms", "INTEGER NOT NULL DEFAULT 0"),
+]
+
 
 class Store:
     """Owns the SQLite file. `tx()` serialises writers process-wide."""
@@ -212,6 +224,9 @@ class Store:
         try:
             c.execute("PRAGMA journal_mode=WAL")
             c.executescript(SCHEMA)
+            for table, col, decl in MIGRATIONS:
+                if col not in {r["name"] for r in c.execute(f"PRAGMA table_info({table})")}:
+                    c.execute(f"ALTER TABLE {table} ADD COLUMN {col} {decl}")
         finally:
             c.close()
 

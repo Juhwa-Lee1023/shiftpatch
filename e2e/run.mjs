@@ -2,8 +2,8 @@
 // AI off for determinism), drives system Chrome through the real UI, saves
 // screenshots to docs/screenshots and a result file to qa/e2e-result.json.
 // Usage: node e2e/run.mjs
-import { chromium } from "playwright";
-import { spawn } from "node:child_process";
+import { chromium } from "./pw.mjs";
+import { execFileSync, spawn } from "node:child_process";
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -47,15 +47,22 @@ async function send(actorLabel, text) {
   return (await page.locator(".bubble.agent .tx").last().innerText());
 }
 const expectIn = (hay, needle, what) => { if (!hay.includes(needle)) throw new Error(`${what}: expected "${needle}" in "${hay.slice(0, 160)}"`); };
+// Test-only setup and fault injection straight on this run's temp database
+// (a Switch room with imported links, a reply marked undelivered). The app
+// itself has no endpoint for either.
+function py(code) {
+  return execFileSync("python3", ["-c", `import sys; sys.path.insert(0, ${JSON.stringify(APP)})\nfrom shiftpatch.db import Store\nfrom shiftpatch import roster\nstore = Store(${JSON.stringify(path.join(DATA, "shiftpatch.db"))})\n${code}`], { encoding: "utf8" });
+}
+const SW = "!e2e-switch:localhost";
 
 let exitCode = 0;
 try {
   await step("landing renders (ko + en)", async () => {
     await page.goto(BASE + "/");
-    await page.getByRole("heading", { name: /13–17시 담당자가/ }).waitFor();
+    await page.getByRole("heading", { name: /11월 9일\(월\) 13–17시 담당자가/ }).waitFor();
     await shot("01-landing-ko.png");
     await page.getByRole("button", { name: "English" }).click();
-    await page.getByRole("heading", { name: /1-to-5 shift/ }).waitFor();
+    await page.getByRole("heading", { name: /Minsu can't cover Monday 13:00–17:00/ }).waitFor();
     await shot("01b-landing-en.png");
     await page.getByRole("button", { name: "한국어" }).click();
   });
@@ -85,6 +92,9 @@ try {
     if (vals.join("|") !== "지안|2026-11-09|09:00|13:00|일반 문의|민수|2026-11-09|13:00|17:00|일반 문의|태오|2026-11-09|17:00|18:00|일반 문의")
       throw new Error("OCR values differ: " + vals.join("|"));
     expectIn(await page.locator(".checks").innerText(), "계정 연결을 확인하지 않았습니다", "mapping must be confirmed");
+    const opts = await page.locator(".maprow select").first().locator("option").allInnerTexts();
+    if (!opts.some((o) => o.includes("local:jian"))) throw new Error("local room should list synthetic local accounts: " + opts.join("|"));
+    expectIn(await page.locator("#review").innerText(), "고정된 합성 계정", "local accounts labelled synthetic");
     for (const cb of await page.locator(".maprow input[type=checkbox]").all()) { await cb.check(); await page.waitForTimeout(150); }
     await page.locator(".grid input").first().waitFor();
     await shot("03-ocr-review-clear.png");
@@ -99,20 +109,31 @@ try {
   await step("chat: tentative inability asks first, then yes opens 13–17", async () => {
     await page.goto(BASE + "/#/room");
     await page.locator("#msg").waitFor();
-    let r = await send("민수", "@ShiftPatch 내일 13~17시 고객문의 응대 못 할 것 같아요");
+    const script = await page.locator(".script").innerText();
+    if (script.includes("?")) throw new Error("demo script shows a placeholder: " + script);
+    let r = await send("민수", "@ShiftPatch 월요일 13~17시 고객문의 응대 못 할 것 같아요");
     expectIn(r, "'불가'로 기록할까요", "clarification");
     r = await send("민수", "@ShiftPatch 네");
-    expectIn(r, "13:00–17:00이 다시 비었습니다", "gap opened");
+    expectIn(r, "13:00–17:00이 비었습니다", "gap opened (first notice, not 'again')");
+    if (r.includes("다시 비었습니다")) throw new Error("first notice must not say 다시: " + r);
+  });
+
+  await step("chat: invalid clock time and ranged withdrawal change only what was asked", async () => {
+    let r = await send("지안", "@ShiftPatch 가능 13:60-15:00");
+    expectIn(r, "분은 00–59", "13:60 refused");
+    r = await send("지안", "@ShiftPatch 가능 13:00-17:00");
+    expectIn(r, "가능으로 기록했습니다", "availability 13–17");
+    r = await send("지안", "@ShiftPatch 가능 취소 15:00-17:00");
+    expectIn(r, "남은 가능 시간: 13:00–15:00", "only 15–17 withdrawn");
   });
 
   await step("chat: availability, proposal, self acceptance, proxy refused, manager confirms", async () => {
     let r = await send("지안", "@ShiftPatch 점심 먹고 두 시간은 돼요");
     expectIn(r, "AI 해석이 지금 꺼져", "AI-off notice (no fake AI)");
-    r = await send("지안", "@ShiftPatch 가능 13-15");
-    expectIn(r, "가능으로 기록했습니다", "availability");
     r = await send("태오", "@ShiftPatch 가능 2026-11-09 15:00-17:00");
     const pid = (r.match(/새 대체안 (P\d+)/) || [])[1];
     if (!pid) throw new Error("no proposal id in: " + r);
+    expectIn(r, `지안: \`수락 ${pid}-a\` · 태오: \`수락 ${pid}-b\``, "reply names the real part IDs");
     r = await send("서연", `@ShiftPatch 수락 ${pid}-a`);
     expectIn(r, "본인에게 제안된 구간만", "proxy acceptance refused");
     r = await send("지안", `@ShiftPatch 수락 ${pid}-a`);
@@ -148,18 +169,81 @@ try {
     expectIn(r, "13:00–15:00이 다시 비었습니다", "reopened");
     expectIn(r, "태오님의 15:00–17:00은 유지됩니다", "Taeo kept");
     r = await send("서연", `@ShiftPatch 확정 ${globalThis.PID}`);
-    expectIn(r, "다시 확정할 수 없습니다", "old plan refused");
+    expectIn(r, "앞서 확정됐습니다", "old plan refused");
+    expectIn(r, "지안님의 13:00–15:00이 빠져서", "refusal says what changed");
     await shot("07-room-after-drop.png", false);
     await page.goto(BASE + "/#/board");
     await page.locator(".banner.gap").getByText("13:00–15:00 담당자가 없습니다").waitFor();
+    const badge = await page.locator(".prop.confirmed .reopened").innerText();
+    expectIn(badge, "앞서 확정 · 13:00–15:00 다시 모집", "derived reopened badge");
+    expectIn(await page.locator(".prop.confirmed .tag.okk").first().innerText(), "확정됨", "history kept as confirmed");
     const rows = await page.locator("table tbody tr").evaluateAll((rs) => rs.map((r) => r.innerText.replace(/\s+/g, " ").trim()));
     const want = ["09:00–13:00 지안 원 근무", "13:00–15:00 — 미해결", "15:00–17:00 태오 대체 확정", "17:00–18:00 태오 원 근무"];
     if (JSON.stringify(rows) !== JSON.stringify(want)) throw new Error("rows " + JSON.stringify(rows));
     await shot("08-board-gap-reopened.png");
     await page.getByRole("button", { name: "English" }).click();
     await page.getByText("13:00–15:00 has nobody assigned").waitFor();
+    expectIn(await page.locator(".prop.confirmed .reopened").innerText(), "confirmed earlier · 13:00–15:00 reopened", "EN badge");
+    expectIn(await page.locator(".boardhead").first().innerText(), "General customer support", "EN duty name");
     await shot("08b-board-gap-reopened-en.png");
     await page.getByRole("button", { name: "한국어" }).click();
+  });
+
+  await step("board: an undelivered reply is shown and sent again without changing the record", async () => {
+    const before = await page.evaluate(async () => (await (await fetch("/api/state")).json()));
+    // synthetic fault: mark the newest delivered reply as failed, as if the chat server had refused it six times
+    py("with store.tx() as c:\n    c.execute(\"UPDATE outbox SET state='failed', attempts=6, last_error='OSError: synthetic outage (e2e)' WHERE id=(SELECT MAX(id) FROM outbox WHERE room_id='local-demo')\")");
+    await page.goto(BASE + "/#/board");
+    await page.locator("#delivery").getByText("채팅방에 전달되지 않았습니다").waitFor();
+    expectIn(await page.locator("#delivery").innerText(), "synthetic outage (e2e)", "error shown");
+    await shot("12-board-delivery-failed.png");
+    await page.locator("#delivery").getByRole("button", { name: "답장 다시 보내기" }).click();
+    await page.waitForFunction(() => !document.getElementById("delivery"), null, { timeout: 15000 });
+    const delayed = (st) => st.transcript.filter((m) => m.kind === "agent" && m.body.startsWith("(늦게 전달되는 답장입니다)"));
+    let after;
+    for (let i = 0; i < 50; i++) {
+      after = await (await fetch(BASE + "/api/state")).json();
+      if (delayed(after).length) break;
+      await page.waitForTimeout(300);
+    }
+    if (after.room.version !== before.room.version) throw new Error(`version changed ${before.room.version} → ${after.room.version}`);
+    if (after.history.length !== before.history.length) throw new Error("history changed on reply retry");
+    if (delayed(after).length !== 1) throw new Error("expected one delayed reply, got " + delayed(after).length + " outbox=" + JSON.stringify(after.outbox));
+  });
+
+  await step("Switch room review lists the linked participant IDs and blocks an unlinked person", async () => {
+    py(`roster.create_room(store, ${JSON.stringify(SW)}, "switch", "e2e Switch room (synthetic, no server)")\nroster.import_switch_links(store, ${JSON.stringify(SW)}, {"@e2e-seoyeon:localhost": "seoyeon", "@e2e-minsu:localhost": "minsu", "@e2e-jian:localhost": "jian"})`);
+    const q = "?room=" + encodeURIComponent(SW);
+    await page.goto(BASE + "/" + q + "#/import");
+    expectIn(await page.locator("h1 + p + p").innerText(), "Switch 방", "import target shown");
+    await page.getByRole("button", { name: "합성 예시 CSV" }).click();
+    await page.locator(".maprow").first().waitFor();
+    const opts = (await page.locator(".maprow select").first().locator("option").allInnerTexts()).join("|");
+    expectIn(opts, "@e2e-jian:localhost", "real linked ID shown");
+    expectIn(opts, "Switch 계정 연결 없음", "unlinked person marked");
+    if (opts.includes("local:")) throw new Error("Switch room must not show local: accounts: " + opts);
+    for (const cb of await page.locator(".maprow input[type=checkbox]").all()) { await cb.check(); await page.waitForTimeout(150); }
+    expectIn(await page.locator(".checks").innerText(), "연결된 Switch 계정이 없습니다", "unlinked blocks import");
+    if (!(await page.getByRole("button", { name: "초기 근무표 등록" }).isDisabled())) throw new Error("approve should be disabled");
+    await shot("13-switch-review-unlinked.png");
+    await page.getByRole("button", { name: "버리기" }).click();
+    py(`roster.import_switch_links(store, ${JSON.stringify(SW)}, {"@e2e-seoyeon:localhost": "seoyeon", "@e2e-minsu:localhost": "minsu", "@e2e-jian:localhost": "jian", "@e2e-taeo:localhost": "taeo"})`);
+    await page.getByRole("button", { name: "합성 예시 CSV" }).click();
+    await page.locator(".maprow").first().waitFor();
+    for (const cb of await page.locator(".maprow input[type=checkbox]").all()) { await cb.check(); await page.waitForTimeout(150); }
+    await page.locator("#approve").check();
+    await page.getByRole("button", { name: "초기 근무표 등록" }).click();
+    await page.getByText("빈 시간이 없습니다").waitFor();
+    expectIn(await page.locator(".boardhead").first().innerText(), "Switch 방", "board names the Switch room");
+    await page.goto(BASE + "/" + q + "#/room");
+    await page.getByText("이 화면에서 대신 보낼 수 없습니다").waitFor();
+    // Same request the actor picker would make, with the page's own token, sent from Node so the
+    // expected 403 does not show up as a browser console error.
+    const token = await page.evaluate(() => document.querySelector('meta[name="shiftpatch-token"]').content);
+    const res = await fetch(`${BASE}/api/demo/message?room=${encodeURIComponent(SW)}`, { method: "POST",
+      headers: { "X-ShiftPatch-Token": token, "Content-Type": "application/json", Origin: BASE },
+      body: JSON.stringify({ actor: "seoyeon", body: "@ShiftPatch 확정 P1" }) });
+    if (res.status !== 403) throw new Error("actor picker reached a Switch room: HTTP " + res.status);
   });
 
   await step("narrow viewport and connection page", async () => {

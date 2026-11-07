@@ -41,7 +41,7 @@ class SwitchThroughApp(unittest.TestCase):
         now = int(time.time() * 1000)
         self.fake.push_message("@switch-user-minsu:localhost", "@shiftpatch 불가 2026-11-09 13:00-17:00", timestamp=now)
         self.assertTrue(wait(lambda: len(self.fake.posted) == 1, 8))
-        self.assertIn("13:00–17:00이 다시 비었습니다", self.fake.posted[0][1])
+        self.assertIn("13:00–17:00이 비었습니다", self.fake.posted[0][1])
         st = self.app.state(ROOM)
         self.assertEqual(st["gaps"], [(780, 1020)])
         self.assertIsNone(st["transcript"])            # no local transcript for a Switch room

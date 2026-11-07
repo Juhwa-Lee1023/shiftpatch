@@ -55,6 +55,7 @@ class FakeSwitch:
         self.seq = 0
         self.generation = 0
         self.live = None
+        self.silent = False       # True: keep the socket open but send nothing (half-open stand-in)
         self.lock = threading.Lock()
         fake = self
 
@@ -141,11 +142,17 @@ class FakeSwitch:
         last_ping = 0
         try:
             while not stop.is_set() and self.live is sock:
+                if self.silent:
+                    time.sleep(0.02)
+                    continue
                 with self.lock:
                     frames, self.queue = self.queue, []
                 for f in frames:
                     if f == "__close__":
                         raise ConnectionAbortedError
+                    if isinstance(f, tuple) and f[0] == "__raw__":
+                        _send(sock, 0x1, f[1].encode())
+                        continue
                     _send(sock, 0x1, json.dumps(f).encode())
                 if time.monotonic() - last_ping > self.ping_interval:
                     _send(sock, 0x1, b'{"type":"ping"}')
@@ -172,6 +179,12 @@ class FakeSwitch:
     def push_control(self, frame):
         with self.lock:
             self.queue.append(frame)
+
+    def push_raw(self, text: str):
+        """Send text exactly as given (e.g. malformed JSON). Synthetic fault,
+        not something a real Switch server was observed to send."""
+        with self.lock:
+            self.queue.append(("__raw__", text))
 
     def drop(self, code=1012):
         sock, self.live = self.live, None

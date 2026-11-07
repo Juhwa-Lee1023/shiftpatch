@@ -1,5 +1,5 @@
 // Which local browser can Playwright drive without downloading one?
-import { chromium, webkit } from "playwright";
+import { chromium, webkit } from "./pw.mjs";
 
 const tries = [
   ["chrome", () => chromium.launch({ channel: "chrome", headless: true })],

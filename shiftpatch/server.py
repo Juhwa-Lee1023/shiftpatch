@@ -24,7 +24,7 @@ from .agent import Agent
 from .db import Store
 from .interpret import Interpreter
 from .local_demo import LocalDemoRoom
-from .outbox import Dispatcher
+from .outbox import Dispatcher, delivery_view
 from .switch_bridge import SwitchBridge, SwitchConfig
 
 APP = Path(__file__).resolve().parent.parent
@@ -55,6 +55,7 @@ class App:
             self.bridge = SwitchBridge(self.store, self.agent, cfg)
             senders["switch"] = lambda room_id, row: self.bridge.post_reply(row["body"])
         self.dispatcher = Dispatcher(self.store, senders)
+        self.agent.recover_unfinished_exports()
 
     def start_background(self):
         self.dispatcher.start()
@@ -62,9 +63,14 @@ class App:
             self.bridge.start()
 
     def export(self, room_id, kind):
-        with self.store.snapshot() as c:
-            now = roster.room_now_ms(engine.room(c, room_id))  # demo room runs on its synthetic clock
-        return exporter.export(self.store, room_id, kind, self.exports_dir, now_ms=now)
+        try:
+            with self.store.snapshot() as c:
+                now = roster.room_now_ms(engine.room(c, room_id))  # demo room runs on its synthetic clock
+            return exporter.export(self.store, room_id, kind, self.exports_dir, now_ms=now)
+        except engine.Rejected:
+            raise
+        except Exception as e:  # noqa: BLE001 - the caller always gets an answer
+            return {"ok": False, "error": type(e).__name__}
 
     # ---------------------------------------------------------------- views
     def state(self, room_id):
@@ -77,12 +83,13 @@ class App:
             outbox = c.execute("SELECT state, COUNT(*) n FROM outbox WHERE room_id=? GROUP BY state", (room_id,)).fetchall()
             pend = [dict(r) for r in c.execute("SELECT q_id, staff_id, action_json, expires_ms, state FROM pending "
                                                "WHERE room_id=? AND state='open' ORDER BY created_ms", (room_id,))]
+            delivery = delivery_view(c, room_id, self.dispatcher.clock())
         for h in hist:
             h["detail"] = json.loads(h.pop("detail_json"))
         rm = b["room"]
         now = roster.room_now_ms(rm)
         return {**b, "history": hist, "exports": exps, "proposals": props, "pending": pend,
-                "outbox": {r["state"]: r["n"] for r in outbox},
+                "outbox": {r["state"]: r["n"] for r in outbox}, "delivery": delivery,
                 "clock": {"now_ms": now, "label": iv.local_label(now, rm["timezone"]),
                           "synthetic": rm["kind"] == "local_demo"},
                 "transcript": self.local.messages(room_id) if rm["kind"] == "local_demo" else None,
@@ -109,6 +116,9 @@ def _json(obj):
 
 def make_handler(app: App):
     allowed_hosts = {f"127.0.0.1:{app.port}", f"localhost:{app.port}"}
+
+    def view(d, mapping=None, confirmed=None):
+        return draft_view(d, mapping, confirmed, accounts=roster.room_accounts(app.store, d["room_id"]))
 
     class H(BaseHTTPRequestHandler):
         server_version = "ShiftPatch/0.1"
@@ -197,7 +207,7 @@ def make_handler(app: App):
                 m = re.fullmatch(r"/api/roster/draft/([0-9a-f]{10})", p)
                 if m:
                     d = app.drafts.get(m.group(1))
-                    return self.ok(draft_view(d)) if d else self.err(404, "DRAFT_NOT_FOUND")
+                    return self.ok(view(d)) if d else self.err(404, "DRAFT_NOT_FOUND")
                 m = re.fullmatch(r"/api/roster/draft/([0-9a-f]{10})/image", p)
                 if m:
                     d = app.drafts.get(m.group(1))
@@ -238,7 +248,7 @@ def make_handler(app: App):
                         d = app.drafts.create_from_image(data, room_id)
                     except ocr.OcrError as e:
                         return self.err(422, str(e))
-                    return self.ok(draft_view(d))
+                    return self.ok(view(d))
                 body = self._body(MAX_JSON)
                 if p == "/api/roster/csv":
                     room_id = self._room(q)
@@ -248,13 +258,13 @@ def make_handler(app: App):
                         rows = roster.parse_csv(body)
                     except ValueError as e:
                         return self.err(422, str(e))
-                    return self.ok(draft_view(app.drafts.create_from_rows(rows, room_id, "csv")))
+                    return self.ok(view(app.drafts.create_from_rows(rows, room_id, "csv")))
                 data = json.loads(body or b"{}")
                 if not isinstance(data, dict):
                     return self.err(400, "BAD_JSON")
                 if p == "/api/roster/sample":
                     rows = roster.parse_csv((APP / "fixtures" / "roster_sample.csv").read_bytes())
-                    return self.ok(draft_view(app.drafts.create_from_rows(rows, roster.LOCAL_ROOM, "sample_csv")))
+                    return self.ok(view(app.drafts.create_from_rows(rows, self._room(q) or roster.LOCAL_ROOM, "sample_csv")))
                 m = re.fullmatch(r"/api/roster/draft/([0-9a-f]{10})/(validate|approve|discard)", p)
                 if m:
                     d = app.drafts.get(m.group(1))
@@ -269,7 +279,7 @@ def make_handler(app: App):
                     confirmed = {n for n in (data.get("confirmed") or []) if isinstance(n, str)}
                     if m.group(2) == "validate":
                         d["rows"] = rows
-                        return self.ok(draft_view(d, mapping, confirmed))
+                        return self.ok(view(d, mapping, confirmed))
                     res = roster.import_roster(app.store, d["room_id"], rows, mapping, confirmed,
                                                data.get("approved") is True, d["source"])
                     app.drafts.discard(d["draft_id"])
@@ -299,6 +309,8 @@ def make_handler(app: App):
                     return self.ok(app.export(room_id, kind))
                 if p == "/api/outbox/retry":
                     room_id = self._room(q)
+                    if room_id is None:
+                        return self.err(404, "ROOM_NOT_FOUND")
                     return self.ok({"retried": app.dispatcher.retry_failed(room_id)})
                 if p == "/api/switch/probe":
                     if app.bridge is None:
@@ -330,17 +342,25 @@ def clean_rows(rows, draft):
     return out
 
 
-def draft_view(d, mapping=None, confirmed=None):
+def draft_view(d, mapping=None, confirmed=None, accounts=None):
+    """`accounts` comes from roster.room_accounts for the draft's room: the
+    chat account that will act as each staff member there. The browser only
+    displays it; links are never set from this screen."""
     rows = d["rows"]
     mapping = mapping if mapping is not None else roster.suggest_mapping(rows)
     confirmed = confirmed or set()
-    ri, gi = roster.validate(rows, mapping, confirmed) if rows else ([], ["NO_ROWS"])
+    acc = {a["staff_id"]: a for a in (accounts or {}).get("accounts", [])}
+    unlinked = {sid for sid, a in acc.items() if a["account"] is None}
+    ri, gi = roster.validate(rows, mapping, confirmed, unlinked=unlinked) if rows else ([], ["NO_ROWS"])
     return {"draft_id": d["draft_id"], "room_id": d["room_id"], "source": d["source"], "status": d["status"],
             "has_image": bool(d.get("image")), "width": d.get("width"), "height": d.get("height"),
             "engine": d.get("engine"), "seconds": d.get("seconds"), "detail": d.get("detail"),
             "rows": [{k: v for k, v in r.items()} for r in rows], "row_issues": ri, "global_issues": gi,
             "blocking": roster.blocking(ri, gi), "mapping": mapping, "confirmed": sorted(confirmed),
-            "directory": [{k: x[k] for k in ("staff_id", "name", "name_en", "role")} for x in roster.DIRECTORY]}
+            "room_kind": (accounts or {}).get("room_kind"),
+            "directory": [{**{k: x[k] for k in ("staff_id", "name", "name_en", "role")},
+                           "account": acc.get(x["staff_id"], {}).get("account"),
+                           "account_kind": acc.get(x["staff_id"], {}).get("kind")} for x in roster.DIRECTORY]}
 
 
 def main(argv=None):

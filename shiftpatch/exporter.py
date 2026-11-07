@@ -79,16 +79,22 @@ def render_ics(snap, generated_ms):
 
 
 def export(store, room_id, kind: str, out_dir: str | Path, now_ms: int | None = None):
+    """Never raises for an I/O problem: snapshot, folder creation, render,
+    write and rename all report back as {"ok": False, "error": ...} and a
+    `failed` row, so the room and the board can say what happened. The
+    file name carries the snapshot version it was rendered from."""
     now_ms = now_ms or int(time.time() * 1000)
-    snap = take_snapshot(store, room_id)
-    out_dir = Path(out_dir) / room_dir(room_id)
-    out_dir.mkdir(parents=True, exist_ok=True)
     export_id = uuid.uuid4().hex[:12]
-    iso = iv.local_iso(now_ms, snap["room"]["timezone"])
-    data = render_csv(snap, iso) if kind == "csv" else render_ics(snap, now_ms)
-    name = f"coverage-{snap['room']['date']}-v{snap['version']}-{export_id}.{kind}"
-    tmp = out_dir / (name + ".tmp")
+    snap, tmp = None, None
     try:
+        snap = take_snapshot(store, room_id)
+        out_dir = Path(out_dir) / room_dir(room_id)
+        store.hit("export_mkdir")
+        out_dir.mkdir(parents=True, exist_ok=True)
+        iso = iv.local_iso(now_ms, snap["room"]["timezone"])
+        data = render_csv(snap, iso) if kind == "csv" else render_ics(snap, now_ms)
+        name = f"coverage-{snap['room']['date']}-v{snap['version']}-{export_id}.{kind}"
+        tmp = out_dir / (name + ".tmp")
         store.hit("export_write")
         with open(tmp, "wb") as f:
             f.write(data)
@@ -96,12 +102,24 @@ def export(store, room_id, kind: str, out_dir: str | Path, now_ms: int | None = 
             os.fsync(f.fileno())
         store.hit("export_publish")
         os.replace(tmp, out_dir / name)
-    except Exception as e:
-        tmp.unlink(missing_ok=True)
-        with store.tx() as c:
-            c.execute("INSERT INTO exports VALUES (?,?,?,?,NULL,NULL,NULL,'failed',?,?)",
-                      (export_id, room_id, kind, snap["version"], type(e).__name__, now_ms))
-        return {"ok": False, "export_id": export_id, "version": snap["version"], "error": type(e).__name__}
+    except engine.Rejected:
+        raise
+    except Exception as e:  # noqa: BLE001
+        if tmp is not None:
+            try:
+                tmp.unlink(missing_ok=True)
+            except OSError:
+                pass
+        version = snap["version"] if snap else None
+        try:
+            with store.tx() as c:
+                if version is None:
+                    version = engine.room(c, room_id)["version"]
+                c.execute("INSERT INTO exports VALUES (?,?,?,?,NULL,NULL,NULL,'failed',?,?)",
+                          (export_id, room_id, kind, version, type(e).__name__, now_ms))
+        except Exception:  # noqa: BLE001 - the database itself may be the problem
+            pass
+        return {"ok": False, "export_id": export_id, "version": version, "error": type(e).__name__}
     digest = hashlib.sha256(data).hexdigest()
     with store.tx() as c:
         c.execute("INSERT INTO exports VALUES (?,?,?,?,?,?,?,'published',NULL,?)",

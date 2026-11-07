@@ -94,9 +94,11 @@ def _lang_of(text: str) -> str:
 
 
 def _time(h: str, m: str | None):
-    hour = int(h)
-    ambiguous = m is None and len(h) == 1 and 1 <= hour <= 11
-    return hour * 60 + int(m or 0), ambiguous
+    """Same strict clock check as every other path: 00–59 minutes, nothing
+    past 24:00. `13:60` raises instead of quietly becoming 14:00."""
+    minute = iv.parse_hhmm(f"{h}:{m or '00'}")
+    ambiguous = m is None and len(h) == 1 and 1 <= int(h) <= 11
+    return minute, ambiguous
 
 
 def parse(body: str, room_date: str, created_ms: int, tz: str):
@@ -128,11 +130,9 @@ def parse(body: str, room_date: str, created_ms: int, tz: str):
                 s, amb1 = _time(g["h1"], g.get("m1"))
                 e, amb2 = _time(g["h2"], g.get("m2"))
             except ValueError:
-                return Unparsed("bad_range", plang, text)
+                return Unparsed("bad_range", plang, text, {"code": "BAD_CLOCK_TIME"})
             if amb1 or amb2:
                 return Unparsed("ambiguous_time", plang, text, {"start": s, "end": e, "kind": kind})
-            if s > 24 * 60 or e > 24 * 60:
-                return Unparsed("bad_range", plang, text)
             bad = iv.valid_write_range(s, e)
             if bad:
                 return Unparsed("bad_range", plang, text, {"code": bad, "start": s, "end": e})

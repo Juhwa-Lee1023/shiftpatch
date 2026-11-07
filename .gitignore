@@ -1,4 +1,5 @@
 node_modules/
+e2e/playwright-dir.local
 data/
 .run/
 build/

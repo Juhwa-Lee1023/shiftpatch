@@ -65,7 +65,7 @@ class SwitchContract(Base):
         self.dispatch.run_once()
         self.assertEqual(len(self.fake.posted), 1)
         self.assertEqual(self.fake.posted[0][0], ROOM)
-        self.assertIn("다시 비었습니다", self.fake.posted[0][1])
+        self.assertIn("13:00–17:00이 비었습니다", self.fake.posted[0][1])
         self.assertTrue(wait(lambda: 1 in self.fake.pongs))   # pong carries processed cursor
 
     def test_safeguards_unaddressed_unlinked_marker_self_other_room(self):

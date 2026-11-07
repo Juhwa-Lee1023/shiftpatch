@@ -29,7 +29,7 @@ BY_ID = {d["staff_id"]: d for d in DIRECTORY}
 BLOCKING = {"DATE_YEAR_OR_FORMAT_NEEDS_REVIEW", "DATE_NOT_ROOM_DATE", "START_NEEDS_EXPLICIT_24H_TIME",
             "END_NEEDS_EXPLICIT_24H_TIME", "AMBIGUOUS_AM_PM", "NON_POSITIVE_OR_OVERNIGHT", "NOT_30_MIN_BOUNDARY",
             "DUTY_MISMATCH", "UNMAPPED_NAME", "MAPPING_NOT_CONFIRMED", "TWO_NAMES_ONE_ACCOUNT", "COLLISION",
-            "EMPTY_CELL"}
+            "EMPTY_CELL", "STAFF_HAS_NO_SWITCH_ACCOUNT"}
 CSV_HEADERS = ["name", "date", "start", "end", "duty"]
 MAX_CSV_BYTES = 64 * 1024
 MAX_ROWS = 40
@@ -108,8 +108,9 @@ def suggest_mapping(rows):
     return sug
 
 
-def validate(rows, mapping: dict, confirmed_names: set, room_date=DATE):
-    """Returns (row_issues list[list[str]], global_issues list[str])."""
+def validate(rows, mapping: dict, confirmed_names: set, room_date=DATE, unlinked=frozenset()):
+    """Returns (row_issues list[list[str]], global_issues list[str]).
+    `unlinked`: staff ids with no chat account in a Switch room."""
     row_issues = []
     for r in rows:
         issues = list(r.get("ocr_issues", []))
@@ -142,6 +143,8 @@ def validate(rows, mapping: dict, confirmed_names: set, room_date=DATE):
             issues.append("UNMAPPED_NAME")
         elif name and name not in confirmed_names:
             issues.append("MAPPING_NOT_CONFIRMED")
+        if name and mapping.get(name) in unlinked:
+            issues.append("STAFF_HAS_NO_SWITCH_ACCOUNT")
         if re.match(r"^[=+\-@\t\r]", name):
             issues.append("FORMULA_LIKE_TEXT")
         row_issues.append(sorted(set(issues)))
@@ -188,6 +191,11 @@ def import_roster(store, room_id, rows, mapping, confirmed_names, manager_approv
         rm = engine.room(c, room_id)
         if rm["events_started"]:
             raise engine.Rejected("COORDINATION_ALREADY_STARTED")
+        if rm["kind"] == "switch":
+            linked = {r["staff_id"] for r in c.execute("SELECT staff_id FROM links WHERE room_id=?", (room_id,))}
+            missing = sorted({mapping[r["name"]] for r in rows} - linked)
+            if missing:
+                raise engine.Rejected("DRAFT_HAS_BLOCKING_ISSUES", issues=["STAFF_HAS_NO_SWITCH_ACCOUNT"], staff=missing)
         c.execute("DELETE FROM base_shifts WHERE room_id=?", (room_id,))
         rv = rm["roster_version"] + 1
         c.execute("UPDATE rooms SET roster_version=?, duty=? WHERE room_id=?", (rv, rows[0]["duty"], room_id))
@@ -207,8 +215,31 @@ def import_roster(store, room_id, rows, mapping, confirmed_names, manager_approv
     return {"roster_version": rv, "rows": len(rows)}
 
 
+def room_accounts(store, room_id):
+    """What the review screen shows next to each staff member: the chat
+    account that will act as them in this room. Local demo rooms use the
+    fixed synthetic accounts; Switch rooms show the opaque participant id
+    imported with import_switch_links, or None when nobody is linked."""
+    with store.snapshot() as c:
+        rm = engine.room(c, room_id)
+        links = {r["staff_id"]: r["platform_user_id"] for r in c.execute("SELECT * FROM links WHERE room_id=?", (room_id,))}
+    out = []
+    for d in DIRECTORY:
+        if rm["kind"] == "local_demo":
+            out.append({"staff_id": d["staff_id"], "account": d["local_user"], "kind": "local_synthetic"})
+        else:
+            out.append({"staff_id": d["staff_id"], "account": links.get(d["staff_id"]), "kind": "switch"})
+    return {"room_kind": rm["kind"], "accounts": out}
+
+
 def import_switch_links(store, room_id, links: dict):
-    """links: {opaque Switch participant id: staff_id}. Local admin only."""
+    """links: {opaque Switch participant id: staff_id}. Local admin only.
+
+    A staff member whose account changes gets a link revision higher than any
+    used before in the room, and every confirmation question still open for
+    them is closed. A question asked to account A can never be answered by a
+    newly linked account B. Unchanged links keep their revision. Returns
+    {"linked": n, "closed_questions": [...]}."""
     with store.tx() as c:
         rm = engine.room(c, room_id)
         if rm["kind"] != "switch":
@@ -217,7 +248,23 @@ def import_switch_links(store, room_id, links: dict):
             raise engine.Rejected("COORDINATION_ALREADY_STARTED")
         if len(set(links.values())) != len(links) or any(s not in BY_ID for s in links.values()):
             raise engine.Rejected("BAD_LINKS")
+        old = {r["staff_id"]: (r["platform_user_id"], r["link_rev"])
+               for r in c.execute("SELECT * FROM links WHERE room_id=?", (room_id,))}
+        top = max([rev for _, rev in old.values()] + [0])
+        new = {sid: pid for pid, sid in links.items()}
+        changed = {sid for sid in set(old) | set(new) if old.get(sid, (None,))[0] != new.get(sid)}
+        closed = []
+        for sid in sorted(changed):
+            for r in c.execute("SELECT q_id FROM pending WHERE room_id=? AND staff_id=? AND state='open'",
+                               (room_id, sid)).fetchall():
+                c.execute("UPDATE pending SET state='stale' WHERE room_id=? AND q_id=?", (room_id, r["q_id"]))
+                closed.append(r["q_id"])
         c.execute("DELETE FROM links WHERE room_id=?", (room_id,))
         for pid, sid in links.items():
-            c.execute("INSERT INTO links(room_id, platform_user_id, staff_id, link_rev) VALUES (?,?,?,1)",
-                      (room_id, pid, sid))
+            rev = old[sid][1] if sid in old and sid not in changed else top + 1
+            c.execute("INSERT INTO links(room_id, platform_user_id, staff_id, link_rev) VALUES (?,?,?,?)",
+                      (room_id, pid, sid, rev))
+        if changed and old:
+            engine.log(c, room_id, rm["version"], room_now_ms(rm), "links_changed", None,
+                       staff=sorted(changed), closed_questions=closed)
+    return {"linked": len(links), "closed_questions": closed}

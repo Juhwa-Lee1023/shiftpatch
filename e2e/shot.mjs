@@ -1,5 +1,5 @@
 // Ad-hoc screenshot: node e2e/shot.mjs <url> <out.png> [width] [lang]
-import { chromium } from "playwright";
+import { chromium } from "./pw.mjs";
 
 const [url, out, width = "1280", lang = "ko"] = process.argv.slice(2);
 const browser = await chromium.launch({ channel: "chrome", headless: true });

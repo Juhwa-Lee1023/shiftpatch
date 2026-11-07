@@ -12,6 +12,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import time
 import uuid
 from dataclasses import dataclass, field
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
@@ -19,7 +20,7 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from . import engine, grammar
 from . import intervals as iv
 from .engine import Rejected
-from .messages import Names, render
+from .messages import Names, part_lines, render
 
 CTX_TTL_MS = 120 * 1000
 FUTURE_SKEW_MS = 2 * 60 * 1000
@@ -252,7 +253,8 @@ class Agent:
 
     def _ack(self, c, rm, staff_id, msg_key, env, parsed, names, lang, out):
         room_id, date = rm["room_id"], rm["date"]
-        pend = engine.pick_pending(c, room_id, staff_id, parsed.q_id, env.created_ms)
+        # Question lifetime runs on our receive clock; ordering (watermark below) stays on created_ms.
+        pend = engine.pick_pending(c, room_id, staff_id, parsed.q_id, env.received_ms, sender=env.sender)
         action = json.loads(pend["action_json"])
         if parsed.kind == "no":
             c.execute("UPDATE pending SET state='declined' WHERE room_id=? AND q_id=?", (room_id, pend["q_id"]))
@@ -261,14 +263,15 @@ class Agent:
         if not engine.pending_dep_current(c, room_id, pend):
             c.execute("UPDATE pending SET state='stale' WHERE room_id=? AND q_id=?", (room_id, pend["q_id"]))
             try:
-                q = engine.create_pending(c, room_id, staff_id, action, msg_key, env.created_ms)
+                q = engine.create_pending(c, room_id, staff_id, action, msg_key, env.received_ms, asked_user=env.sender)
             except Rejected:
                 return ("확인하려던 내용의 조건이 바뀌어 더 이상 적용할 수 없습니다." if lang == "ko"
                         else "The facts behind that confirmation changed, so it can no longer be applied.")
             out["pending"] = q
+            exp = iv.local_label(env.received_ms + engine.PENDING_TTL_MS, rm["timezone"]).split(" ")[1]
             return (("그 사이 관련 기록이 바뀌었습니다. 다시 확인해 주세요.\n" if lang == "ko"
                      else "Something related changed in the meantime. Please confirm again.\n")
-                    + pending_question(action, q, names, lang, date, staff_id, None))
+                    + pending_question(action, q, names, lang, date, staff_id, exp))
         out["attempted"] = action["kind"]
         out["proposal_id"] = action.get("proposal_id")
         engine.check_and_advance_watermark(c, room_id, staff_id, env.created_ms, msg_key)
@@ -288,10 +291,12 @@ class Agent:
             return "전달된 메시지로는 기록을 바꾸지 않습니다." if ko else "Forwarded messages never change the record."
         if r == "ambiguous_time":
             s, e = parsed.info["start"], parsed.info["end"]
-            verb = {"inability": "불가", "availability": "가능"}.get(parsed.info.get("kind"), "가능")
+            kind = parsed.info.get("kind")
+            verb = ({"inability": "불가", "availability": "가능"} if ko else
+                    {"inability": "unavailable", "availability": "available"}).get(kind, "가능" if ko else "available")
             alt = f"{verb} {(s // 60) + 12:02d}-{(e // 60) + 12:02d}" if e // 60 + 12 <= 24 else f"{verb} {iv.fmt(s)}-{iv.fmt(e)}"
             return (f"{iv.fmt_range(s, e)}인가요, 오후인가요? 24시 표기로 보내 주세요. 예: `{alt}`" if ko
-                    else f"Did you mean {iv.fmt_range(s, e)} or the afternoon? Please use 24-hour time, e.g. `available 15-17`.")
+                    else f"Did you mean {iv.fmt_range(s, e)} or the afternoon? Please use 24-hour time, e.g. `{alt}`.")
         if r == "bad_range":
             return render(parsed.info.get("code", "NON_POSITIVE_OR_OVERNIGHT"), {}, lang, names, date)
         if r == "wrong_date":
@@ -347,27 +352,58 @@ class Agent:
                 return ("어느 구간인지 확실하지 않아요. `수락 P1-a`처럼 구간 번호를 넣어 보내 주세요." if ko
                         else "I am not sure which part you mean. Send e.g. `accept P1-a`.") + tag
             action["part_id"] = s.part_id
-        q = engine.create_pending(c, room_id, staff_id, action, msg_key, env.created_ms)
+        q = engine.create_pending(c, room_id, staff_id, action, msg_key, env.received_ms, asked_user=env.sender)
         out.update(status="pending", pending=q)
-        exp = iv.local_label(env.created_ms + engine.PENDING_TTL_MS, rm["timezone"]).split(" ")[1]
+        exp = iv.local_label(env.received_ms + engine.PENDING_TTL_MS, rm["timezone"]).split(" ")[1]
         return pending_question(action, q, names, lang, date, staff_id, exp) + tag
 
     # ------------------------------------------------------------ export side effect
     def _run_export(self, rm, msg_key, result):
+        """Runs after the request is committed as processed, so a redelivery of
+        the same message is a duplicate and never exports twice. Whatever the
+        exporter raises (snapshot, mkdir, write), the room gets a closing reply
+        and the way to retry is a new `export` message."""
         if self.exporter is None:
             return
-        res = self.exporter(rm["room_id"], result["export"])
-        lang = result.get("lang", "ko")
-        if res["ok"]:
+        try:
+            res = self.exporter(rm["room_id"], result["export"])
+        except Exception as e:  # noqa: BLE001 - every failure must end in a reply
+            res = {"ok": False, "error": type(e).__name__}
+        result["export_result"] = res
+        self._export_reply(rm["room_id"], msg_key, result.get("lang", "ko"), res)
+
+    def _export_reply(self, room_id, msg_key, lang, res):
+        if res.get("ok"):
             text = (f"{res['file']} 파일을 만들었습니다 (판본 #{res['version']}). 이 Mac의 exports 폴더와 현황표의 내보내기 목록에 있어요."
                     if lang == "ko" else f"Created {res['file']} (version #{res['version']}). It is in this Mac's exports folder and the board's export list.")
+        elif res.get("error") == "interrupted":
+            text = ("앞서 요청한 내보내기는 ShiftPatch가 다시 시작되면서 끝나지 않았습니다. 근무 기록은 그대로입니다. `내보내기`로 다시 요청해 주세요."
+                    if lang == "ko" else "The export you asked for earlier did not finish because ShiftPatch restarted. Coverage is unchanged. Send `export` to make it again.")
         else:
-            text = ("파일을 만들지 못했습니다. 확정된 내용은 그대로입니다. `내보내기`로 다시 시도해 주세요." if lang == "ko"
-                    else "Export failed. Confirmed coverage is unchanged. Send `export` to retry.")
+            why = f" ({res['error']})" if res.get("error") else ""
+            text = (f"파일을 만들지 못했습니다{why}. 확정된 내용은 그대로입니다. `내보내기`를 다시 보내면 새로 만듭니다." if lang == "ko"
+                    else f"Export failed{why}. Confirmed coverage is unchanged. Send `export` again to make a new file.")
         with self.store.tx() as c:
+            at = engine.room(c, room_id)["clock_offset_ms"] + int(time.time() * 1000)
             c.execute("INSERT OR IGNORE INTO outbox(room_id, idem_key, reply_to, body, state, created_ms) "
-                      "VALUES (?,?,?,?,'pending',?)", (rm["room_id"], msg_key + ":export", None, text, 0))
-        result["export_result"] = res
+                      "VALUES (?,?,?,?,'pending',?)", (room_id, msg_key + ":export", None, text, at))
+
+    def recover_unfinished_exports(self) -> int:
+        """At startup: an export request that was committed but never got its
+        closing reply (process stopped mid-export) gets one now, so the room is
+        not left with only "Creating…". It does not re-run the export."""
+        with self.store.snapshot() as c:
+            rows = c.execute(
+                "SELECT p.msg_key, p.room_id, p.result_json FROM processed p WHERE p.result_json LIKE '%\"export\":%' "
+                "AND NOT EXISTS (SELECT 1 FROM outbox o WHERE o.idem_key = p.msg_key || ':export')").fetchall()
+        n = 0
+        for r in rows:
+            res = json.loads(r["result_json"])
+            if not res.get("export"):
+                continue
+            self._export_reply(r["room_id"], r["msg_key"], res.get("lang", "ko"), {"ok": False, "error": "interrupted"})
+            n += 1
+        return n
 
 
 # ---------------------------------------------------------------- text views
@@ -437,8 +473,7 @@ def proposal_text(c, rm, lang, names):
         if p["carried_from"]:
             st += f" ({p['carried_from']}에서 이어받음)" if ko else f" (carried from {p['carried_from']})"
         lines.append(f"{p['part_id']}  {names(p['staff_id'])}  {iv.fmt_range(p['start'], p['end'])}  {st}")
-    lines.append("각자 `수락 P?-?`로 본인 구간을 수락하고, 관리자가 `확정 P?`로 반영합니다." if ko
-                 else "Each person sends `accept P?-?` for their own part; the manager sends `confirm P?`.")
+    lines.append(part_lines(v["parts"], names, ko, v["proposal_id"]))
     return "\n".join(lines)
 
 

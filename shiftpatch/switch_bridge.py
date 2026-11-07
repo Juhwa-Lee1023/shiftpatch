@@ -37,6 +37,50 @@ RECONNECT_EVICTIONS = {"heartbeat_lapsed", "no_stream", "unfenced", "connection_
 FINAL_CLOSE = {4400, 4401, 4403, 4409}
 HANDLER_ATTEMPTS = 5
 MARKER_KEYS = {"com.switch.auto_reply": "auto_reply", "com.switch.admin": "admin"}
+# Switch pings every 2 s and drops a client that misses 6 s of pongs. If we
+# hear nothing at all for this long the socket is treated as dead (half-open
+# TCP, paused VM) and we reconnect from the processed cursor.
+READ_TIMEOUT_S = 15.0
+
+
+class BadFrame(Exception):
+    """A frame we cannot trust: not JSON, not an object, or a sequence/cursor
+    that is not a non-negative integer. The connection is dropped and reopened
+    from the processed cursor; the frame never reaches the pipeline."""
+
+
+def _seq(value, what):
+    if isinstance(value, bool):
+        raise BadFrame(f"{what} is not an integer")
+    try:
+        n = int(value)
+    except (TypeError, ValueError):
+        raise BadFrame(f"{what} is not an integer") from None
+    if n < 0 or (isinstance(value, float) and n != value):
+        raise BadFrame(f"{what} is not a non-negative integer")
+    return n
+
+
+def parse_frame(raw: str) -> dict:
+    try:
+        frame = json.loads(raw)
+    except ValueError:
+        raise BadFrame("not JSON") from None
+    if not isinstance(frame, dict):
+        raise BadFrame("not a JSON object")
+    kind = frame.get("event") or frame.get("type")
+    if kind in DOMAIN:
+        if "id" not in frame:
+            raise BadFrame("domain frame without id")
+        frame["id"] = _seq(frame["id"], "frame id")
+        if frame.get("data") is not None and not isinstance(frame["data"], dict):
+            raise BadFrame("domain frame data is not an object")
+    fields = frame.get("data") if isinstance(frame.get("data"), dict) else frame
+    if kind == "connection_state" and fields.get("cursor") is not None:
+        fields["cursor"] = _seq(fields["cursor"], "cursor")
+    if kind == "gap" and fields.get("resumed_at") is not None:
+        fields["resumed_at"] = _seq(fields["resumed_at"], "resumed_at")
+    return frame
 
 
 @dataclass
@@ -74,9 +118,11 @@ def _markers(payload: dict) -> frozenset:
 
 
 class SwitchBridge:
-    def __init__(self, store, agent, cfg: SwitchConfig, ping_answer=True, clock=lambda: int(time.time() * 1000)):
+    def __init__(self, store, agent, cfg: SwitchConfig, ping_answer=True, clock=lambda: int(time.time() * 1000),
+                 read_timeout=READ_TIMEOUT_S):
         self.store, self.agent, self.cfg, self.clock = store, agent, cfg, clock
         self.ping_answer = ping_answer
+        self.read_timeout = read_timeout
         self.state = "idle"
         self.detail = None
         self.halted = None
@@ -86,7 +132,8 @@ class SwitchBridge:
         self.connection_id = self._kv("connection_id") or str(uuid.uuid4())
         self._kv_set("connection_id", self.connection_id)
         self.generation = int(self._kv("generation")) if self._kv("generation") else None
-        self.counters = {"frames": 0, "pings": 0, "pongs": 0, "messages": 0, "addressed": 0, "gaps": 0, "reconnects": 0}
+        self.counters = {"frames": 0, "pings": 0, "pongs": 0, "messages": 0, "addressed": 0, "gaps": 0, "reconnects": 0,
+                         "bad_frames": 0, "read_timeouts": 0}
         self._q = queue.Queue()
         self._stop = threading.Event()
         self._ws = None
@@ -154,11 +201,14 @@ class SwitchBridge:
             self._ws.close()
 
     def _run(self):
+        """Reader thread. Every way out of _read_loop ends in a state other
+        than "connected": reconnecting, stopped, error or halted."""
         backoff = 1
         while not self._stop.is_set():
             self.state = "connecting"
             try:
-                self._ws = WebSocket.connect(self.ws_url(), {"Authorization": f"Bearer {self.cfg.api_key}"})
+                self._ws = WebSocket.connect(self.ws_url(), {"Authorization": f"Bearer {self.cfg.api_key}"},
+                                             read_timeout=self.read_timeout)
                 backoff = 1
                 self.state = "connected"
                 self._read_loop()
@@ -172,11 +222,21 @@ class SwitchBridge:
                     self.state = "stopped"
                     return
                 self.state = "reconnecting"
+            except BadFrame as e:
+                self.counters["bad_frames"] += 1
+                self.state, self.detail = "reconnecting", f"bad frame: {e}; cursor kept at {self.cursor}"
+            except TimeoutError:
+                self.counters["read_timeouts"] += 1
+                self.state, self.detail = "reconnecting", f"no frame for {self.read_timeout:g} s; reconnecting"
             except OSError as e:
                 self.state, self.detail = "reconnecting", type(e).__name__
+            except Exception as e:  # noqa: BLE001 - never leave a dead reader marked connected
+                self.state, self.detail = "reconnecting", f"reader {type(e).__name__}"
             finally:
                 if self._ws is not None:
                     self._ws.close()
+                if self.state == "connected":
+                    self.state = "reconnecting"
             if self.halted:
                 self.state = "halted"
                 return
@@ -188,7 +248,7 @@ class SwitchBridge:
 
     def _read_loop(self):
         while not self._stop.is_set():
-            frame = json.loads(self._ws.recv())
+            frame = parse_frame(self._ws.recv())
             self.counters["frames"] += 1
             kind = frame.get("event") or frame.get("type")
             if kind == "ping":
@@ -206,7 +266,7 @@ class SwitchBridge:
                 self.generation = fields.get("generation")
                 self.rooms = fields.get("rooms") or []
                 if fields.get("cursor") is not None:
-                    self.cursor = max(self.cursor, int(fields["cursor"])) if self.cursor else int(fields["cursor"])
+                    self.cursor = max(self.cursor, fields["cursor"]) if self.cursor else fields["cursor"]
                     # Persist the head position too: without it a restart after a failed
                     # first message would open at "head" and skip that message.
                     self._kv_set("cursor", self.cursor)
@@ -214,9 +274,10 @@ class SwitchBridge:
                 self.detail = None if self.cfg.room_id in self.rooms else "room_not_covered"
             elif kind == "gap":
                 self.counters["gaps"] += 1
-                self.cursor = int(fields.get("resumed_at") or self.cursor)
+                self.cursor = fields.get("resumed_at") or self.cursor
                 self._kv_set("cursor", self.cursor)
-                self._gap_note = "(연결이 끊긴 동안 놓친 메시지가 있을 수 있습니다. 필요한 내용은 다시 보내 주세요.)"
+                self._gap_note = ("(연결이 끊긴 동안 놓친 메시지가 있을 수 있습니다. 필요한 내용은 다시 보내 주세요. / "
+                                  "Messages may have been missed while disconnected; please resend anything important.)")
             elif kind == "evicted":
                 code = fields.get("code")
                 self.detail = f"evicted {code}"

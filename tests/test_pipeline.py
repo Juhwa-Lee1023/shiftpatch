@@ -197,22 +197,25 @@ class Pipeline(Base):
 
     def test_x8_reply_failure_and_restart_send_without_rerunning_state(self):
         calls = []
+        clock = {"t": 1_000_000}
 
         def flaky(room_id, row):
             calls.append(row["idem_key"])
             raise ConnectionError("room unreachable")
-        d = Dispatcher(self.store, {"local_demo": flaky})
+        d = Dispatcher(self.store, {"local_demo": flaky}, clock=lambda: clock["t"])
         self.say("minsu", "@ShiftPatch 불가 13-17")
         v = self.version()
         d.run_once()
+        clock["t"] += 60_000          # past the first backoff
         d.run_once()
         self.assertEqual(self.version(), v)
         pending = [o for o in self.outbox() if o["state"] == "pending"]
         self.assertTrue(pending and pending[-1]["attempts"] == 2)
-        # "restart": a new store/agent/dispatcher on the same file
+        # "restart": a new store/agent/dispatcher on the same file, later
         store2 = Store(self.store.path)
         sent = []
-        d2 = Dispatcher(store2, {"local_demo": lambda room_id, row: sent.append(row["idem_key"])})
+        d2 = Dispatcher(store2, {"local_demo": lambda room_id, row: sent.append(row["idem_key"])},
+                        clock=lambda: clock["t"] + 120_000)
         d2.run_once()
         d2.run_once()
         self.assertEqual(len(sent), len(set(sent)))
@@ -223,11 +226,11 @@ class Pipeline(Base):
     def test_l05_english_commands(self):
         r = self.say("minsu", "@ShiftPatch unavailable 2026-11-09 13:00-17:00")
         self.assertEqual(r["code"], "INABILITY_RECORDED")
-        self.assertIn("uncovered again", r["reply"])
+        self.assertIn("13:00–17:00 is now uncovered", r["reply"])   # first notice: not "again"
         r = self.say("taeo", "@ShiftPatch available 13-17")
         part = self.board()["proposal"]["parts"][0]["part_id"]
         r = self.say("taeo", f"@ShiftPatch accept {part}")
-        self.assertIn("Waiting for the manager", r["reply"])
+        self.assertIn("Waiting for Seoyeon to send `confirm P1`", r["reply"])
         r = self.say("seoyeon", "@ShiftPatch status")
         self.assertIn("Coverage", r["reply"])
 

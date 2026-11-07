@@ -15,7 +15,7 @@
       nav_board: "담당 현황", nav_room: "시연 방", nav_import: "근무표 가져오기", nav_connect: "연결과 기록 방식",
       footer: "합성 예시 데이터 · 이 Mac(127.0.0.1)에서만 열리는 로컬 화면",
       land_kicker: "고객지원팀의 하루 근무 공백 조율",
-      land_title: "내일 13–17시 담당자가 갑자기 빠졌다면",
+      land_title: "11월 9일(월) 13–17시 담당자가 갑자기 빠졌다면",
       land_lede: "ShiftPatch는 팀 채팅방에서 동료들이 답한 가능 시간을 대체 근무안으로 묶고, 각자의 수락과 관리자 확정을 거쳐 담당 현황표에 반영하는 에이전트예요. 나중에 누가 또 빠지면 그 시간만 다시 비어 보입니다.",
       land_steps: ["동료가 채팅에 가능한 시간을 답합니다. 확실하지 않은 말은 에이전트가 먼저 되묻고요.",
                    "에이전트가 시간대별 대체안을 올리면 각자 자기 구간만 수락합니다.",
@@ -40,8 +40,15 @@
       exports: "내보내기", csv: "CSV 내려받기", ics: "ICS(확정분만)", no_exports: "만든 파일이 없습니다.",
       export_fail: "파일을 만들지 못했습니다. 확정된 내용은 그대로입니다.",
       p_open: "확정 대기", p_confirmed: "확정됨", p_superseded: "새 안으로 대체",
+      p_reopened: (r) => `앞서 확정 · ${r} 다시 모집`,
       carried: "이어받은 수락", step_accept: "본인 수락", step_confirm: "관리자 확정", step_cut: "이후 불가 통보",
       need_new: "비어 있는 시간은 새 대체안이 필요합니다.",
+      dl_title: "채팅방에 전달되지 않은 답장",
+      dl_failed: (n) => `ShiftPatch 답장 ${n}개가 채팅방에 전달되지 않았습니다. 근무 기록은 이미 반영돼 있고, 다시 보내도 기록은 바뀌지 않습니다.`,
+      dl_waiting: (n) => `답장 ${n}개를 다시 보내는 중입니다. 앞선 답장이 전달될 때까지 뒤의 답장은 기다립니다.`,
+      dl_retry: "답장 다시 보내기", dl_retried: (n) => `${n}개를 다시 보낼 차례에 넣었습니다.`,
+      dl_in: (s) => `${s}초 뒤 다시 시도`,
+      room_kind_local: "로컬 합성 시연 방", room_kind_switch: "Switch 방",
       avail: "가능하다고 답한 사람", no_avail: "가능 응답 없음",
       no_roster_title: "아직 근무표가 없습니다",
       no_roster_body: "초기 근무표를 등록하면 시간대별 담당과 빈 시간이 여기에 표시됩니다.",
@@ -60,7 +67,10 @@
       imp_locked: "조율이 이미 시작돼 근무표를 다시 가져올 수 없습니다. 진행 중인 기록을 덮어쓰지 않기 위해서예요.",
       src: "원본", extracted: "읽어낸 표 (고칠 수 있어요)", mapping: "이름과 계정 연결",
       map_hint: "같은 이름이라도 자동으로 연결하지 않습니다. 계정을 고르고 확인 표시를 해 주세요. 역할은 관리자 설정에서 정해집니다.",
-      map_none: "연결 안 함", map_ok: "확인함",
+      map_hint_switch: "목록의 ID는 이 Switch 방에서 해당 직원으로 행동할 참가자 ID입니다. manage.py import-links로 들여온 값이며 이 화면에서는 바꿀 수 없습니다.",
+      map_hint_local: "로컬 시연 방의 계정은 고정된 합성 계정(local:…)입니다. 실제 채팅 계정이 아닙니다.",
+      map_none: "연결 안 함", map_ok: "확인함", map_unlinked: "Switch 계정 연결 없음",
+      imp_into: "가져올 방",
       checks: "확인할 항목", checks_none: "막는 항목이 없습니다.",
       approve_box: "날짜·시간·업무·직원 연결을 원본과 대조해 확인했습니다",
       approve: "초기 근무표 등록", discard: "버리기", revalidate: "다시 검사",
@@ -79,7 +89,7 @@
       nav_board: "Coverage", nav_room: "Demo room", nav_import: "Import roster", nav_connect: "Connection & data",
       footer: "Synthetic example data · local screen, opens on this Mac (127.0.0.1) only",
       land_kicker: "Filling a sudden gap in one day's support shifts",
-      land_title: "Tomorrow's 1-to-5 shift just lost its person",
+      land_title: "Minsu can't cover Monday 13:00–17:00",
       land_lede: "ShiftPatch is an agent in the team chat room. It turns colleagues' replies into a replacement proposal; each person accepts their own hours and the manager confirms. If someone drops out later, only their hours reopen.",
       land_steps: ["Colleagues reply with the hours they can take. Hedged wording gets a question first.",
                    "The agent posts a proposal by time slot; each person accepts only their own part.",
@@ -104,8 +114,15 @@
       exports: "Export", csv: "Download CSV", ics: "ICS (confirmed only)", no_exports: "No files yet.",
       export_fail: "Export failed. Confirmed coverage is unchanged.",
       p_open: "waiting for confirmation", p_confirmed: "confirmed", p_superseded: "replaced by a newer proposal",
+      p_reopened: (r) => `confirmed earlier · ${r} reopened`,
       carried: "acceptance carried", step_accept: "accepted", step_confirm: "confirmed", step_cut: "later unavailable",
       need_new: "The reopened hours need a new proposal.",
+      dl_title: "Replies that did not reach the chat room",
+      dl_failed: (n) => `${n} ShiftPatch ${n === 1 ? "reply" : "replies"} did not reach the chat room. The record already changed; sending again does not change it.`,
+      dl_waiting: (n) => `Retrying ${n} ${n === 1 ? "reply" : "replies"}. Later replies wait until the earlier one gets through.`,
+      dl_retry: "Send replies again", dl_retried: (n) => `${n} queued to send again.`,
+      dl_in: (s) => `next try in ${s} s`,
+      room_kind_local: "Local synthetic demo room", room_kind_switch: "Switch room",
       avail: "Said they are available", no_avail: "no availability replies",
       no_roster_title: "No roster yet",
       no_roster_body: "Import the initial roster and this board shows who covers each interval and where the gap is.",
@@ -124,7 +141,10 @@
       imp_locked: "Coordination has started, so the roster cannot be imported again. Live records are never overwritten.",
       src: "Source", extracted: "Extracted table (editable)", mapping: "Names and accounts",
       map_hint: "Matching names are never linked automatically. Pick an account and tick to confirm. Roles come from the manager's settings.",
-      map_none: "not linked", map_ok: "confirmed",
+      map_hint_switch: "The IDs listed are the Switch participants who will act as each person in this room. They come from manage.py import-links and cannot be changed here.",
+      map_hint_local: "Local demo accounts are fixed synthetic accounts (local:…), not real chat accounts.",
+      map_none: "not linked", map_ok: "confirmed", map_unlinked: "no Switch account linked",
+      imp_into: "Importing into",
       checks: "To check", checks_none: "Nothing is blocking.",
       approve_box: "I checked dates, times, duty and account links against the source",
       approve: "Import initial roster", discard: "Discard", revalidate: "Check again",
@@ -152,6 +172,7 @@
       TWO_NAMES_ONE_ACCOUNT: "서로 다른 이름이 한 계정에 연결됐습니다", COLLISION: "다른 행과 시간이 겹칩니다",
       EMPTY_CELL: "빈 칸이 있습니다", OCR_SCORE_REVIEW_SIGNAL_NOT_ACCURACY: "인식 점수가 낮아 원본과 대조가 필요합니다",
       FORMULA_LIKE_TEXT: "수식처럼 보이는 글자 (내보낼 때 무력화)", NO_ROWS: "행이 없습니다",
+      STAFF_HAS_NO_SWITCH_ACCOUNT: "이 직원에게 연결된 Switch 계정이 없습니다 (manage.py import-links 먼저)",
     },
     en: {
       DATE_YEAR_OR_FORMAT_NEEDS_REVIEW: "Date lacks a year or has another format (e.g. 2026-11-09)",
@@ -163,6 +184,7 @@
       TWO_NAMES_ONE_ACCOUNT: "Two names linked to one account", COLLISION: "Overlaps another row",
       EMPTY_CELL: "Empty cell", OCR_SCORE_REVIEW_SIGNAL_NOT_ACCURACY: "Low recognition score: compare with the source",
       FORMULA_LIKE_TEXT: "Looks like a formula (neutralised on export)", NO_ROWS: "No rows",
+      STAFF_HAS_NO_SWITCH_ACCOUNT: "No Switch account is linked to this person (run manage.py import-links first)",
     },
   };
   const issueText = (c) => ISSUE[lang][c] || c;
@@ -198,6 +220,16 @@
   // Subject particle from the last syllable's final consonant (지안이, 태오가); non-Hangul such as ShiftPatch reads with 가.
   const iga = (w) => { const c = w.charCodeAt(w.length - 1) - 0xac00; return w + (c >= 0 && c < 11172 && c % 28 ? "이" : "가"); };
   const WD = { ko: "일월화수목금토", en: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] };
+  // The roster's duty text is Korean in the fixtures; show the English name on the English screen.
+  const DUTY_EN = { "일반 고객문의 응대": "General customer support", "일반 문의": "General customer support" };
+  const duty = (d) => (lang === "en" ? DUTY_EN[d] || d : d);
+  const managerName = () => { const m = (state.staff || []).find((x) => x.role === "manager"); return m ? staffName(m.staff_id) : (lang === "en" ? "the manager" : "관리자"); };
+  function roomBadge(s) {
+    const local = s.room.kind === "local_demo";
+    const conn = !local && s.switch && s.switch.room_id === s.room.room_id ? ` · ${s.switch.state}` : "";
+    return el("span", { class: "tag" + (local ? "" : " okk"), title: s.room.room_id },
+      (local ? t("room_kind_local") : `${t("room_kind_switch")} ${s.room.room_id.slice(0, 8)}…`) + conn);
+  }
   function dateLabel(iso) {
     const [y, m, d] = iso.split("-").map(Number);
     const wd = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
@@ -258,10 +290,10 @@
   // ------------------------------------------------------------ welcome
   function viewWelcome() {
     const scene = lang === "en"
-      ? [["Minsu", "@ShiftPatch I might not make tomorrow 13–17."], ["ShiftPatch", "Minsu, should I mark Mon 11/9 13:00–17:00 unavailable? Reply yes or no.", 1],
-         ["Jian", "@ShiftPatch available 13-15"], ["Taeo", "@ShiftPatch available 15-17"], ["ShiftPatch", "Proposal P2: Jian 13:00–15:00, Taeo 15:00–17:00. Each person accepts their own part.", 1]]
-      : [["민수", "@ShiftPatch 내일 13~17시 못 할 것 같아요"], ["ShiftPatch", "민수님, 11/9(월) 13:00–17:00을 '불가'로 기록할까요? 맞으면 `네`라고 답해 주세요.", 1],
-         ["지안", "@ShiftPatch 점심 먹고 두 시간은 돼요"], ["태오", "@ShiftPatch 가능 15-17"], ["ShiftPatch", "대체안 P2: 지안 13:00–15:00, 태오 15:00–17:00. 각자 본인 구간을 수락해 주세요.", 1]];
+      ? [["Minsu", "@ShiftPatch I might be unable to cover Monday 13-17."], ["ShiftPatch", "Minsu, should I mark Mon 11/9 13:00–17:00 unavailable? Reply yes or no.", 1],
+         ["Jian", "@ShiftPatch available 13-15"], ["Taeo", "@ShiftPatch available 15-17"], ["ShiftPatch", "New proposal P2: Jian 13:00–15:00, Taeo 15:00–17:00. Jian: accept P2-a · Taeo: accept P2-b", 1]]
+      : [["민수", "@ShiftPatch 월요일 13~17시 못 할 것 같아요"], ["ShiftPatch", "민수님, 11/9(월) 13:00–17:00을 '불가'로 기록할까요? 맞으면 `네`라고 답해 주세요.", 1],
+         ["지안", "@ShiftPatch 점심 먹고 두 시간은 돼요"], ["태오", "@ShiftPatch 가능 15-17"], ["ShiftPatch", "새 대체안 P2: 지안 13:00–15:00, 태오 15:00–17:00. 지안: 수락 P2-a · 태오: 수락 P2-b", 1]];
     $view.replaceChildren(el("section", { class: "landing" },
       el("div", {},
         el("p", { class: "muted" }, t("land_kicker")),
@@ -284,7 +316,7 @@
           el("dt", {}, t("who_agent")), el("dd", {}, t("who_agent_d"))))));
   }
   async function startSample() {
-    draft = await api("/api/roster/sample", { method: "POST", json: {} });
+    draft = await api(`/api/roster/sample?room=${encodeURIComponent(ROOM)}`, { method: "POST", json: {} });
     location.hash = "#/import";
   }
 
@@ -306,7 +338,7 @@
     const gaps = s.gaps;
     const frag = el("div", { class: "stack" });
     frag.append(el("div", { class: "boardhead" },
-      el("div", {}, el("div", { class: "muted" }, t("board_title") + " · " + s.room.duty), el("div", { class: "date" }, dateLabel(s.room.date))),
+      el("div", {}, el("div", { class: "muted" }, t("board_title") + " · " + duty(s.room.duty), " ", roomBadge(s)), el("div", { class: "date" }, dateLabel(s.room.date))),
       el("div", { class: "meta" }, el("div", { class: "ver" }, `${t("version")} #${s.room.version}`),
         el("div", {}, `${t("at")} ${clock(s.clock.now_ms)}${s.clock.synthetic ? (lang === "en" ? " (synthetic clock)" : " (가상 시각)") : ""}`))));
     const line = lastEventLine();
@@ -318,6 +350,8 @@
     } else {
       frag.append(el("div", { class: "banner clear", role: "status" }, el("div", { class: "big" }, t("gap_none")), line && el("p", {}, line)));
     }
+    const dl = deliveryBox(s);
+    if (dl) frag.append(dl);
     frag.append(el("section", { class: "panel" }, timeline(s), coverageTable(s)));
     frag.append(el("div", { class: "row" },
       el("section", { class: "panel grow" }, el("h2", {}, t("proposals")), proposalsList(s)),
@@ -329,8 +363,30 @@
     const parts = p.parts.map((x) => `${nm(x)} ${rng(x.start, x.end)} ${x.accepted ? "✓" : "…"}`).join(" · ");
     const waiting = p.parts.filter((x) => !x.accepted);
     const tail = waiting.length ? (lang === "en" ? `Waiting for ${waiting.map(nm).join(", ")} to accept.` : `${waiting.map(nm).join(", ")}님 수락 대기.`)
-      : (lang === "en" ? "All accepted. Waiting for Seoyeon to confirm." : "모두 수락했습니다. 서연님이 확인하면 근무표에 반영됩니다.");
+      : (lang === "en" ? `All accepted. Waiting for ${managerName()} to confirm.` : `모두 수락했습니다. ${managerName()}님이 확정하면 근무표에 반영됩니다.`);
     return `${p.proposal_id}: ${parts}. ${tail}`;
+  }
+  // Replies are delivered after the record changes. If the chat server keeps
+  // refusing one, say so here; "send again" moves only the reply.
+  function deliveryBox(s) {
+    const rows = s.delivery || [];
+    if (!rows.length) return null;
+    const failed = rows.filter((r) => r.state === "failed");
+    const waiting = rows.filter((r) => r.state === "pending");
+    const msg = el("p", { class: "small", role: "status" });
+    const retry = async () => {
+      try { const r = await api(`/api/outbox/retry?room=${encodeURIComponent(ROOM)}`, { method: "POST", json: {} }); msg.textContent = t("dl_retried")(r.retried); }
+      catch (e) { msg.textContent = String(e.message); }
+      await load(); patchLive("board");
+    };
+    return el("section", { class: "panel delivery", id: "delivery" },
+      el("h2", {}, t("dl_title")),
+      failed.length ? el("p", { class: "err" }, t("dl_failed")(failed.length)) : null,
+      waiting.length ? el("p", { class: "muted" }, t("dl_waiting")(waiting.length)) : null,
+      el("ul", { class: "small" }, rows.map((r) => el("li", {},
+        el("span", { class: "tag" + (r.state === "failed" ? " warn" : "") }, r.state === "failed" ? "failed" : t("dl_in")(Math.ceil((r.retry_in_ms || 0) / 1000))),
+        " ", el("span", {}, r.excerpt), " ", el("span", { class: "muted num" }, `· ${r.attempts}× · ${r.last_error || ""}`)))),
+      failed.length ? el("button", { class: "btn", type: "button", onclick: retry }, t("dl_retry")) : null, msg);
   }
   function timeline(s) {
     const cov = s.coverage;
@@ -362,8 +418,11 @@
   }
   function proposalsList(s) {
     if (!s.proposals.length) return el("p", { class: "muted" }, t("no_proposal"));
+    // A confirmed proposal stays "confirmed" in history; what changed since is
+    // derived from its cuts and shown next to it, not written over it.
     return el("div", {}, s.proposals.map((p) => el("div", { class: `prop ${p.state}` },
-      el("h3", {}, p.proposal_id, el("span", { class: "tag" + (p.state === "open" ? " warn" : p.state === "confirmed" ? " okk" : "") }, t("p_" + p.state))),
+      el("h3", {}, p.proposal_id, el("span", { class: "tag" + (p.state === "open" ? " warn" : p.state === "confirmed" ? " okk" : "") }, t("p_" + p.state)),
+        p.state === "confirmed" && (p.cuts || []).length ? el("span", { class: "tag warn reopened" }, t("p_reopened")(p.cuts.map((c) => rng(c.start, c.end)).join(", "))) : null),
       el("ul", {}, p.parts.map((x) => {
         const cut = (p.cuts || []).some((c) => c.staff_id === x.staff_id && c.start < x.end && x.start < c.end);
         const steps = [x.accepted || x.confirmed ? t("step_accept") : t("pend_wait")];
@@ -381,7 +440,12 @@
     switch (h.kind) {
       case "roster_imported": return en ? `${who} imported the initial roster (${d.rows} rows, ${d.source})` : `${iga(who)} 초기 근무표 등록 (${d.rows}행, ${d.source})`;
       case "availability": return en ? `${who} available ${rng(d.start, d.end)}` : `${who} ${rng(d.start, d.end)} 가능`;
-      case "availability_withdrawn": return en ? `${who} withdrew availability` : `${who} 가능 기록 철회`;
+      case "availability_withdrawn": {
+        const r = d.start !== undefined && d.start !== null ? " " + rng(d.start, d.end) : "";
+        return en ? `${who} withdrew availability${r}` : `${who}${r} 가능 기록 철회`;
+      }
+      case "links_changed": return en ? `Chat account changed for ${d.staff.map(staffName).join(", ")}${d.closed_questions.length ? "; closed " + d.closed_questions.join(", ") : ""}`
+        : `${d.staff.map(staffName).join(", ")} 채팅 계정 변경${d.closed_questions.length ? " — " + d.closed_questions.join(", ") + " 확인 닫음" : ""}`;
       case "inability": return en ? `${who} cannot do ${rng(d.start, d.end)}` : `${who}의 ${rng(d.start, d.end)} 불가 반영`;
       case "proposal_created": return (en ? `Proposal ${d.proposal_id}: ` : `대체안 ${d.proposal_id}: `) + d.parts.map((p) => `${staffName(p.staff_id)} ${rng(p.start, p.end)}`).join(", ") + (d.carried && d.carried.length ? (en ? " (acceptance carried)" : " (수락 이어받음)") : "");
       case "proposal_superseded": return en ? `Proposal ${d.proposal_id} replaced` : `대체안 ${d.proposal_id} 새 안으로 대체`;
@@ -426,27 +490,32 @@
 
   // ------------------------------------------------------------ demo room
   const ACTORS = ["seoyeon", "minsu", "jian", "taeo"];
+  // Lines that need a proposal or part ID stay disabled until the agent has
+  // posted one, so the script never shows a placeholder like "P?-?".
   function scriptLines() {
     const p = state.proposal || state.proposals[0];
-    const part = (who) => (p && p.parts.find((x) => x.staff_id === who) || {}).part_id || "P?-?";
-    const pid = p ? p.proposal_id : (state.proposals[0] || {}).proposal_id || "P?";
+    const part = (who) => (p && p.parts.find((x) => x.staff_id === who) || {}).part_id || null;
+    const pid = p ? p.proposal_id : null;
     const confirmed = state.proposals.find((x) => x.state === "confirmed");
-    if (lang === "en") return [
-      ["minsu", "@ShiftPatch I might not make tomorrow 13-17"], ["minsu", "@ShiftPatch yes"],
-      ["jian", "@ShiftPatch I can do two hours after lunch"], ["jian", "@ShiftPatch yes"],
-      ["taeo", "@ShiftPatch available 2026-11-09 15:00-17:00"],
-      ["jian", `@ShiftPatch accept ${part("jian")}`], ["taeo", `@ShiftPatch accept ${part("taeo")}`],
-      ["seoyeon", "@ShiftPatch both of them said yes"], ["seoyeon", `@ShiftPatch confirm ${pid}`],
-      ["seoyeon", "@ShiftPatch export"], ["jian", "@ShiftPatch unavailable 2026-11-09 13:00-15:00"],
-      ["seoyeon", `@ShiftPatch confirm ${confirmed ? confirmed.proposal_id : pid}`], ["seoyeon", "@ShiftPatch status"]];
+    const old = confirmed ? confirmed.proposal_id : pid;
+    const en = lang === "en";
+    const L = (who, text, need) => [who, need === null ? null : text, need === null ? (en ? "after the proposal reply" : "대체안 답장이 온 뒤") : null];
+    if (en) return [
+      L("minsu", "@ShiftPatch I might be unable to cover Monday 13-17"), L("minsu", "@ShiftPatch yes"),
+      L("jian", "@ShiftPatch I can do two hours after lunch"), L("jian", "@ShiftPatch yes"),
+      L("taeo", "@ShiftPatch available 2026-11-09 15:00-17:00"),
+      L("jian", `@ShiftPatch accept ${part("jian")}`, part("jian")), L("taeo", `@ShiftPatch accept ${part("taeo")}`, part("taeo")),
+      L("seoyeon", "@ShiftPatch both of them said yes"), L("seoyeon", `@ShiftPatch confirm ${pid}`, pid),
+      L("seoyeon", "@ShiftPatch export"), L("jian", "@ShiftPatch unavailable 2026-11-09 13:00-15:00"),
+      L("seoyeon", `@ShiftPatch confirm ${old}`, old), L("seoyeon", "@ShiftPatch status")];
     return [
-      ["minsu", "@ShiftPatch 내일 13~17시 고객문의 응대 못 할 것 같아요"], ["minsu", "@ShiftPatch 네"],
-      ["jian", "@ShiftPatch 점심 먹고 두 시간은 돼요"], ["jian", "@ShiftPatch 네"],
-      ["taeo", "@ShiftPatch 가능 2026-11-09 15:00-17:00"],
-      ["jian", `@ShiftPatch 수락 ${part("jian")}`], ["taeo", `@ShiftPatch 수락 ${part("taeo")}`],
-      ["seoyeon", "@ShiftPatch 둘 다 된대요"], ["seoyeon", `@ShiftPatch 확정 ${pid}`],
-      ["seoyeon", "@ShiftPatch 내보내기"], ["jian", "@ShiftPatch 불가 2026-11-09 13:00-15:00"],
-      ["seoyeon", `@ShiftPatch 확정 ${confirmed ? confirmed.proposal_id : pid}`], ["seoyeon", "@ShiftPatch 표"]];
+      L("minsu", "@ShiftPatch 월요일 13~17시 고객문의 응대 못 할 것 같아요"), L("minsu", "@ShiftPatch 네"),
+      L("jian", "@ShiftPatch 점심 먹고 두 시간은 돼요"), L("jian", "@ShiftPatch 네"),
+      L("taeo", "@ShiftPatch 가능 2026-11-09 15:00-17:00"),
+      L("jian", `@ShiftPatch 수락 ${part("jian")}`, part("jian")), L("taeo", `@ShiftPatch 수락 ${part("taeo")}`, part("taeo")),
+      L("seoyeon", "@ShiftPatch 둘 다 된대요"), L("seoyeon", `@ShiftPatch 확정 ${pid}`, pid),
+      L("seoyeon", "@ShiftPatch 내보내기"), L("jian", "@ShiftPatch 불가 2026-11-09 13:00-15:00"),
+      L("seoyeon", `@ShiftPatch 확정 ${old}`, old), L("seoyeon", "@ShiftPatch 표")];
   }
   function chatItems() {
     const msgs = state.transcript || [];
@@ -498,8 +567,9 @@
         timeline(s),
         el("p", { class: "small muted" }, el("a", { href: "#/board" }, t("nav_board") + " →"))),
       el("section", { class: "panel" }, el("h3", {}, t("script")), el("p", { class: "small muted" }, t("script_hint")),
-        el("ol", { class: "script" }, scriptLines().map(([who, text], i) => el("li", {}, el("span", { class: "n" }, i + 1),
-          el("button", { type: "button", onclick: () => window.__fill(who, text) }, `${staffName(who)}: ${text.replace("@ShiftPatch ", "")}`)))),
+        el("ol", { class: "script" }, scriptLines().map(([who, text, later], i) => el("li", {}, el("span", { class: "n" }, i + 1),
+          text ? el("button", { type: "button", onclick: () => window.__fill(who, text) }, `${staffName(who)}: ${text.replace("@ShiftPatch ", "")}`)
+            : el("button", { type: "button", disabled: true }, `${staffName(who)}: ${later}`)))),
         el("p", { class: "small muted", style: "margin-top:12px" }, t("room_restart")),
         el("button", { class: "btn ghost", type: "button", onclick: async () => { if (confirm(t("reset_q"))) { await api("/api/demo/reset", { method: "POST", json: {} }); location.hash = "#/"; render(); } } }, t("reset"))));
   }
@@ -526,13 +596,14 @@
     });
     const reviewHost = el("div", { id: "review" });
     $view.replaceChildren(el("div", { class: "stack" },
-      el("section", {}, el("h1", {}, t("imp_title")), el("p", { class: "muted" }, t("imp_lede"))),
+      el("section", {}, el("h1", {}, t("imp_title")), el("p", { class: "muted" }, t("imp_lede")),
+        el("p", { class: "small" }, t("imp_into") + ": ", roomBadge(state))),
       locked ? el("section", { class: "panel" }, el("p", { class: "err" }, t("imp_locked"))) :
         el("section", { class: "panel" },
           el("div", { class: "row" },
             el("label", { class: "drop grow" }, el("div", { style: "font-weight:600;margin-bottom:8px" }, t("imp_img")), imgInput),
             el("label", { class: "drop grow" }, el("div", { style: "font-weight:600;margin-bottom:8px" }, t("imp_csv")), csvInput)),
-          el("div", { class: "actions", style: "margin-top:12px" }, el("button", { class: "btn ghost", type: "button", onclick: async () => { draft = await api("/api/roster/sample", { method: "POST", json: {} }); drawReview(); } }, t("imp_sample"))),
+          el("div", { class: "actions", style: "margin-top:12px" }, el("button", { class: "btn ghost", type: "button", onclick: async () => { draft = await api(`/api/roster/sample?room=${encodeURIComponent(ROOM)}`, { method: "POST", json: {} }); drawReview(); } }, t("imp_sample"))),
           reading, msg),
       reviewHost));
     if (draft && !locked) drawReview();
@@ -567,7 +638,9 @@
     const mapBox = el("div", {}, names.map((n) => {
       const sel = el("select", { "aria-label": `${n} account`, onchange: (e) => { d.mapping[n] = e.target.value || null; revalidate(); } },
         el("option", { value: "" }, t("map_none")),
-        d.directory.map((u) => el("option", { value: u.staff_id, selected: d.mapping[n] === u.staff_id }, `${lang === "en" ? u.name_en : u.name} · local:${u.staff_id}${u.role === "manager" ? " (" + t("manager") + ")" : ""}`)));
+        // The label is the account that will really act as this person in the draft's room.
+        d.directory.map((u) => el("option", { value: u.staff_id, selected: d.mapping[n] === u.staff_id, disabled: !u.account },
+          `${lang === "en" ? u.name_en : u.name} · ${u.account || t("map_unlinked")}${u.role === "manager" ? " (" + t("manager") + ")" : ""}`)));
       const cb = el("input", { type: "checkbox", checked: d.confirmed.includes(n), "aria-label": `${n} ${t("map_ok")}`,
         onchange: (e) => { d.confirmed = e.target.checked ? [...new Set([...d.confirmed, n])] : d.confirmed.filter((x) => x !== n); revalidate(); } });
       return el("div", { class: "maprow" }, el("span", { class: "src-name" }, n), el("span", { class: "muted" }, "→"), sel, el("label", {}, cb, " ", t("map_ok")));
@@ -604,7 +677,8 @@
           el("p", { class: "small muted", style: "margin-top:8px" }, `${t("ocr_meta")}: ${d.engine || ""} · ${d.width}×${d.height}px · ${d.seconds}s. ${t("score_note")}`)) : null,
         el("div", {}, el("h3", {}, t("extracted")), grid,
           el("div", { class: "actions", style: "margin-top:8px" }, el("button", { class: "btn ghost", type: "button", onclick: revalidate }, t("revalidate"))))),
-      el("div", {}, el("h3", {}, t("mapping")), el("p", { class: "small muted" }, t("map_hint")), mapBox),
+      el("div", {}, el("h3", {}, t("mapping")), el("p", { class: "small muted" }, t("map_hint")),
+        el("p", { class: "small muted" }, d.room_kind === "switch" ? t("map_hint_switch") : t("map_hint_local")), mapBox),
       el("div", {}, el("h3", {}, t("checks")), checks),
       el("div", { class: "actions", style: "align-items:center" }, el("label", {}, approveBox, " ", t("approve_box")), approveBtn,
         el("button", { class: "btn ghost", type: "button", onclick: discardDraft }, t("discard"))), out));

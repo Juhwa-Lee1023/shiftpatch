@@ -35,7 +35,9 @@ class WebSocket:
         self._buf = b""
 
     @classmethod
-    def connect(cls, url: str, headers: dict, timeout: float = 10.0):
+    def connect(cls, url: str, headers: dict, timeout: float = 10.0, read_timeout: float | None = None):
+        """`read_timeout`: after the handshake, a recv that hears nothing for
+        this long raises TimeoutError (None waits forever)."""
         u = urlsplit(url)
         secure = u.scheme == "wss"
         port = u.port or (443 if secure else 80)
@@ -67,7 +69,7 @@ class WebSocket:
             raise HandshakeError(status, "bad Sec-WebSocket-Accept")
         ws = cls(sock)
         ws._buf = rest
-        sock.settimeout(None)
+        sock.settimeout(read_timeout)
         return ws
 
     def _read(self, n: int) -> bytes:

@@ -194,22 +194,42 @@ def add_availability(c, room_id, staff_id, start, end, msg, created_ms) -> Outco
 
 
 def withdraw_availability(c, room_id, staff_id, start, end, msg, created_ms) -> Outcome:
+    """Bare withdraw removes all of the sender's availability. A ranged one
+    removes exactly [start, end): each overlapping row is closed and what is
+    left of it comes back as new rows. Those keep the original statement's
+    created_version/created_ms, so an earlier inability still cuts them and
+    the earlier-reply tie-break is unchanged; nothing outside the range is
+    ever withdrawn."""
     rows = c.execute("SELECT * FROM availability WHERE room_id=? AND staff_id=? AND state='active'",
                      (room_id, staff_id)).fetchall()
     if start is not None:
+        bad = iv.valid_write_range(start, end)
+        if bad:
+            raise Rejected(bad, start=start, end=end)
         rows = [r for r in rows if iv.overlaps(r["start_min"], r["end_min"], start, end)]
     if not rows:
-        raise Rejected("NOTHING_TO_WITHDRAW")
+        raise Rejected("NOTHING_TO_WITHDRAW", start=start, end=end)
     v = bump(c, room_id)
+    removed, remainder = [], []
     for r in rows:
         c.execute("UPDATE availability SET state='withdrawn', rev=rev+1 WHERE room_id=? AND avail_id=?",
                   (room_id, r["avail_id"]))
+        if start is None:
+            removed.append((r["start_min"], r["end_min"]))
+            continue
+        removed.append(iv.intersect(r["start_min"], r["end_min"], start, end))
+        for s, e in iv.subtract([(r["start_min"], r["end_min"])], start, end):
+            n = c.execute("SELECT COUNT(*) FROM availability WHERE room_id=?", (room_id,)).fetchone()[0] + 1
+            c.execute("INSERT INTO availability VALUES (?,?,?,?,?,1,'active',?,?,?)",
+                      (room_id, f"A{n}", staff_id, s, e, r["source_msg"], r["created_ms"], r["created_version"]))
+            remainder.append({"avail_id": f"A{n}", "from": r["avail_id"], "start": s, "end": e})
     _touch_fact(c, room_id, staff_id)
     _start_events(c, room_id)
-    log(c, room_id, v, created_ms, "availability_withdrawn", staff_id, avail_ids=[r["avail_id"] for r in rows])
+    log(c, room_id, v, created_ms, "availability_withdrawn", staff_id, avail_ids=[r["avail_id"] for r in rows],
+        start=start, end=end, kept=remainder)
     prop = regenerate(c, room_id, created_ms)
-    return Outcome("AVAILABILITY_WITHDRAWN", {"ranges": [(r["start_min"], r["end_min"]) for r in rows],
-                                              "proposal": prop})
+    left = [p for a in effective_availability(c, room_id) if a["row"]["staff_id"] == staff_id for p in a["pieces"]]
+    return Outcome("AVAILABILITY_WITHDRAWN", {"ranges": iv.union(removed), "kept": iv.union(left), "proposal": prop})
 
 
 def add_inability(c, room_id, staff_id, start, end, msg, created_ms) -> Outcome:
@@ -300,9 +320,11 @@ def regenerate(c, room_id, now_ms):
     pn = c.execute("SELECT proposal_counter FROM rooms WHERE room_id=?", (room_id,)).fetchone()[0]
     pid = f"P{pn}"
     c.execute("INSERT INTO proposals VALUES (?,?,'open',?,?,NULL)", (room_id, pid, rm["version"], now_ms))
-    carried = []
+    carried, listed = [], []
     for idx, ch in enumerate(sorted(chosen, key=lambda k: k["start"])):
         part_id = f"{pid}-{chr(ord('a') + idx)}"
+        listed.append({"part_id": part_id, "staff_id": ch["staff_id"], "start": ch["start"], "end": ch["end"],
+                       "accepted": False})
         c.execute("INSERT INTO parts VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                   (room_id, part_id, pid, ch["staff_id"], ch["start"], ch["end"], ch["avail_id"], ch["avail_rev"],
                    ch["link_rev"], ch["roster_version"], ch["hash"]))
@@ -314,10 +336,11 @@ def regenerate(c, room_id, now_ms):
             c.execute("INSERT INTO acceptances VALUES (?,?,?,?,?,'active',?,?,?)",
                       (room_id, acc_id, part_id, ch["staff_id"], ch["hash"], prev["acc_id"], prev["source_msg"], now_ms))
             carried.append({"part_id": part_id, "from_part": prev["part_id"], "staff_id": ch["staff_id"]})
+            listed[-1]["accepted"] = True
     log(c, room_id, rm["version"], now_ms, "proposal_created", None, proposal_id=pid,
         parts=[{"staff_id": ch["staff_id"], "start": ch["start"], "end": ch["end"]} for ch in chosen],
         carried=carried, replaces=cur["proposal_id"] if cur else None)
-    return {"proposal_id": pid, "changed": True, "carried": carried,
+    return {"proposal_id": pid, "changed": True, "carried": carried, "parts": listed,
             "superseded": cur["proposal_id"] if cur else None}
 
 
@@ -401,7 +424,9 @@ def confirm(c, room_id, staff_id, proposal_id, msg, created_ms) -> Outcome:
         raise Rejected("PROPOSAL_NOT_FOUND", proposal_id=proposal_id)
     if prop["state"] == "confirmed":
         cut = _assignment_cuts(c, room_id, proposal_id)
-        raise Rejected("ALREADY_CONFIRMED_CHANGED" if cut else "ALREADY_CONFIRMED", proposal_id=proposal_id, cut=cut)
+        cur = open_proposal(c, room_id)
+        raise Rejected("ALREADY_CONFIRMED_CHANGED" if cut else "ALREADY_CONFIRMED", proposal_id=proposal_id, cut=cut,
+                       current=cur["proposal_id"] if cur else None)
     if prop["state"] != "open":
         cur = open_proposal(c, room_id)
         raise Rejected("PROPOSAL_STALE", proposal_id=proposal_id, current=cur["proposal_id"] if cur else None)
@@ -469,7 +494,11 @@ def dep_for(c, room_id, staff_id, action: dict) -> dict:
     return dep
 
 
-def create_pending(c, room_id, staff_id, action: dict, origin_msg: str, now_ms: int) -> str:
+def create_pending(c, room_id, staff_id, action: dict, origin_msg: str, now_ms: int, asked_user: str | None = None) -> str:
+    """`now_ms` is when ShiftPatch received the message (our clock), so a
+    question asked about a delayed message still gets its full 10 minutes.
+    `asked_user` is the chat account the question went to; only that account
+    can answer it, even if the staff link changes later."""
     for r in c.execute("SELECT q_id, action_json FROM pending WHERE room_id=? AND staff_id=? AND state='open'",
                        (room_id, staff_id)).fetchall():
         if json.loads(r["action_json"])["kind"] == action["kind"]:
@@ -478,9 +507,10 @@ def create_pending(c, room_id, staff_id, action: dict, origin_msg: str, now_ms: 
     c.execute("UPDATE rooms SET pending_counter=pending_counter+1 WHERE room_id=?", (room_id,))
     n = c.execute("SELECT pending_counter FROM rooms WHERE room_id=?", (room_id,)).fetchone()[0]
     q_id = f"Q{n}"
-    c.execute("INSERT INTO pending VALUES (?,?,?,?,?,?,?,'open',?)",
+    c.execute("INSERT INTO pending(room_id, q_id, staff_id, origin_msg, action_json, dep_json, expires_ms, state, "
+              "created_ms, asked_user) VALUES (?,?,?,?,?,?,?,'open',?,?)",
               (room_id, q_id, staff_id, origin_msg, json.dumps(action, sort_keys=True), json.dumps(dep, sort_keys=True),
-               now_ms + PENDING_TTL_MS, now_ms))
+               now_ms + PENDING_TTL_MS, now_ms, asked_user))
     return q_id
 
 
@@ -496,9 +526,16 @@ def open_pendings(c, room_id, staff_id, now_ms):
     return live
 
 
-def pick_pending(c, room_id, staff_id, q_id, now_ms):
-    """Resolve which open confirmation a bare yes/no refers to."""
+def pick_pending(c, room_id, staff_id, q_id, now_ms, sender: str | None = None):
+    """Resolve which open confirmation a bare yes/no refers to. `now_ms` is
+    the receive time of the yes/no, the same clock the question was set on.
+    A question asked to another chat account is closed, never answered."""
     live = open_pendings(c, room_id, staff_id, now_ms)
+    if sender is not None:
+        foreign = [r for r in live if r["asked_user"] is not None and r["asked_user"] != sender]
+        live = [r for r in live if r not in foreign]
+        if foreign and not live and (q_id is None or q_id in {r["q_id"] for r in foreign}):
+            raise Rejected("CONFIRMATION_OTHER_ACCOUNT", q_id=q_id or foreign[0]["q_id"])
     if q_id:
         hit = [r for r in live if r["q_id"] == q_id]
         if not hit:

@@ -1,56 +1,71 @@
 {
-  "at": "2026-11-07T07:59:27.597Z",
+  "at": "2026-11-07T09:32:36.413Z",
   "command": "node e2e/run.mjs",
   "browser": "system Google Chrome via Playwright channel=chrome (headless)",
   "ai": "off (SHIFTPATCH_AI=off) for determinism",
-  "port": 8792,
-  "duration_ms": 5859,
+  "port": 8876,
+  "duration_ms": 11376,
   "exit_code": 0,
   "steps": [
     {
       "name": "landing renders (ko + en)",
       "ok": true,
-      "ms": 292
+      "ms": 319
     },
     {
       "name": "OCR: ambiguous synthetic image is flagged and import stays blocked",
       "ok": true,
-      "ms": 884
+      "ms": 1933
     },
     {
       "name": "OCR: unsupported layout falls back to CSV/manual",
       "ok": true,
-      "ms": 799
+      "ms": 816
     },
     {
       "name": "OCR: clear image → confirm account links → explicit approval → board",
       "ok": true,
-      "ms": 1514
+      "ms": 1546
     },
     {
       "name": "chat: tentative inability asks first, then yes opens 13–17",
       "ok": true,
-      "ms": 219
+      "ms": 203
+    },
+    {
+      "name": "chat: invalid clock time and ranged withdrawal change only what was asked",
+      "ok": true,
+      "ms": 301
     },
     {
       "name": "chat: availability, proposal, self acceptance, proxy refused, manager confirms",
       "ok": true,
-      "ms": 850
+      "ms": 753
     },
     {
       "name": "board + CSV show the same confirmed coverage",
       "ok": true,
-      "ms": 230
+      "ms": 241
     },
     {
       "name": "after confirmation Jian drops 13–15: only that interval reopens, old plan cannot re-confirm",
       "ok": true,
-      "ms": 487
+      "ms": 491
+    },
+    {
+      "name": "board: an undelivered reply is shown and sent again without changing the record",
+      "ok": true,
+      "ms": 2319
+    },
+    {
+      "name": "Switch room review lists the linked participant IDs and blocks an unlinked person",
+      "ok": true,
+      "ms": 1457
     },
     {
       "name": "narrow viewport and connection page",
       "ok": true,
-      "ms": 103
+      "ms": 148
     },
     {
       "name": "no browser console errors",

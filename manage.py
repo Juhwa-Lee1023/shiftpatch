@@ -114,8 +114,10 @@ def main():
     try:
         if a.cmd == "import-links":
             links = json.loads(Path(a.file).read_text())
-            roster.import_switch_links(store, room_id, links)
-            print(f"linked {len(links)} Switch participants")
+            res = roster.import_switch_links(store, room_id, links)
+            print(f"linked {res['linked']} Switch participants")
+            if res["closed_questions"]:
+                print("closed open confirmation questions for relinked staff: " + ", ".join(res["closed_questions"]))
         elif a.cmd == "import-roster":
             rows = roster.parse_csv(Path(a.csv).read_bytes())
             mapping = json.loads(Path(a.mapping).read_text())
