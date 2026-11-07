@@ -1,0 +1,12 @@
+{
+  "name": "shiftpatch-e2e",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Browser end-to-end checks for the ShiftPatch local app (the app itself is Python stdlib).",
+  "scripts": {
+    "e2e": "node e2e/run.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1"
+  }
+}

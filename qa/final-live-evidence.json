@@ -1,0 +1,1001 @@
+{
+  "status": "FINAL_SOURCE_LIVE_FLOW_VERIFIED",
+  "at": "2026-11-07T08:17:09.840457+00:00",
+  "synthetic_team": true,
+  "operator_count": 1,
+  "real_switch": true,
+  "real_model": true,
+  "human_user_study": false,
+  "trace": [
+    {
+      "actor": "seoyeon",
+      "body": "New synthetic demo · Monday, November 9. One developer operates the four fictional accounts. Local Switch + Mattermost.",
+      "at": "2026-11-07T08:15:53.452212+00:00",
+      "seconds": 0.032,
+      "version": 1,
+      "gaps": [],
+      "coverage": [
+        {
+          "start": 540,
+          "end": 780,
+          "status": "original",
+          "staff_id": "jian",
+          "ref": "R1",
+          "name": "지안",
+          "name_en": "Jian",
+          "pending": []
+        },
+        {
+          "start": 780,
+          "end": 1020,
+          "status": "original",
+          "staff_id": "minsu",
+          "ref": "R2",
+          "name": "민수",
+          "name_en": "Minsu",
+          "pending": []
+        },
+        {
+          "start": 1020,
+          "end": 1080,
+          "status": "original",
+          "staff_id": "taeo",
+          "ref": "R3",
+          "name": "태오",
+          "name_en": "Taeo",
+          "pending": []
+        }
+      ],
+      "proposal": null,
+      "ai": {
+        "enabled": true,
+        "engine": "claude-code-cli",
+        "model_alias": "sonnet",
+        "status": "not_called",
+        "reason": null
+      },
+      "outbox": {}
+    },
+    {
+      "actor": "minsu",
+      "body": "On November 9, I might not make my 13:00–17:00 support shift.",
+      "at": "2026-11-07T08:16:02.321601+00:00",
+      "seconds": 3.859,
+      "version": 1,
+      "gaps": [],
+      "coverage": [
+        {
+          "start": 540,
+          "end": 780,
+          "status": "original",
+          "staff_id": "jian",
+          "ref": "R1",
+          "name": "지안",
+          "name_en": "Jian",
+          "pending": []
+        },
+        {
+          "start": 780,
+          "end": 1020,
+          "status": "original",
+          "staff_id": "minsu",
+          "ref": "R2",
+          "name": "민수",
+          "name_en": "Minsu",
+          "pending": []
+        },
+        {
+          "start": 1020,
+          "end": 1080,
+          "status": "original",
+          "staff_id": "taeo",
+          "ref": "R3",
+          "name": "태오",
+          "name_en": "Taeo",
+          "pending": []
+        }
+      ],
+      "proposal": null,
+      "ai": {
+        "enabled": true,
+        "engine": "claude-code-cli",
+        "model_alias": "sonnet",
+        "status": "ok",
+        "reason": null,
+        "seconds": 3.52,
+        "at": 1794039362
+      },
+      "outbox": {
+        "sent": 1
+      }
+    },
+    {
+      "actor": "minsu",
+      "body": "yes Q1",
+      "at": "2026-11-07T08:16:08.954539+00:00",
+      "seconds": 0.631,
+      "version": 2,
+      "gaps": [
+        [
+          780,
+          1020
+        ]
+      ],
+      "coverage": [
+        {
+          "start": 540,
+          "end": 780,
+          "status": "original",
+          "staff_id": "jian",
+          "ref": "R1",
+          "name": "지안",
+          "name_en": "Jian",
+          "pending": []
+        },
+        {
+          "start": 780,
+          "end": 1020,
+          "status": "uncovered",
+          "staff_id": null,
+          "ref": null,
+          "name": null,
+          "name_en": null,
+          "pending": []
+        },
+        {
+          "start": 1020,
+          "end": 1080,
+          "status": "original",
+          "staff_id": "taeo",
+          "ref": "R3",
+          "name": "태오",
+          "name_en": "Taeo",
+          "pending": []
+        }
+      ],
+      "proposal": null,
+      "ai": {
+        "enabled": true,
+        "engine": "claude-code-cli",
+        "model_alias": "sonnet",
+        "status": "ok",
+        "reason": null,
+        "seconds": 3.52,
+        "at": 1794039362
+      },
+      "outbox": {
+        "sent": 2
+      }
+    },
+    {
+      "actor": "jian",
+      "body": "available 2026-11-09 13:00-15:00",
+      "at": "2026-11-07T08:16:14.191855+00:00",
+      "seconds": 0.228,
+      "version": 3,
+      "gaps": [
+        [
+          780,
+          1020
+        ]
+      ],
+      "coverage": [
+        {
+          "start": 540,
+          "end": 780,
+          "status": "original",
+          "staff_id": "jian",
+          "ref": "R1",
+          "name": "지안",
+          "name_en": "Jian",
+          "pending": []
+        },
+        {
+          "start": 780,
+          "end": 1020,
+          "status": "uncovered",
+          "staff_id": null,
+          "ref": null,
+          "name": null,
+          "name_en": null,
+          "pending": [
+            {
+              "part_id": "P1-a",
+              "staff_id": "jian",
+              "name": "지안",
+              "name_en": "Jian",
+              "start": 780,
+              "end": 900,
+              "accepted": false,
+              "carried_from": null,
+              "confirmed": false,
+              "valid": true
+            }
+          ]
+        },
+        {
+          "start": 1020,
+          "end": 1080,
+          "status": "original",
+          "staff_id": "taeo",
+          "ref": "R3",
+          "name": "태오",
+          "name_en": "Taeo",
+          "pending": []
+        }
+      ],
+      "proposal": {
+        "proposal_id": "P1",
+        "state": "open",
+        "parts": [
+          {
+            "part_id": "P1-a",
+            "staff_id": "jian",
+            "name": "지안",
+            "name_en": "Jian",
+            "start": 780,
+            "end": 900,
+            "accepted": false,
+            "carried_from": null,
+            "confirmed": false,
+            "valid": true
+          }
+        ],
+        "cuts": [],
+        "closed_reason": null,
+        "created_ms": 1794039373968
+      },
+      "ai": {
+        "enabled": true,
+        "engine": "claude-code-cli",
+        "model_alias": "sonnet",
+        "status": "ok",
+        "reason": null,
+        "seconds": 3.52,
+        "at": 1794039362
+      },
+      "outbox": {
+        "sent": 3
+      }
+    },
+    {
+      "actor": "taeo",
+      "body": "available 2026-11-09 15:00-17:00",
+      "at": "2026-11-07T08:16:19.436618+00:00",
+      "seconds": 0.234,
+      "version": 4,
+      "gaps": [
+        [
+          780,
+          1020
+        ]
+      ],
+      "coverage": [
+        {
+          "start": 540,
+          "end": 780,
+          "status": "original",
+          "staff_id": "jian",
+          "ref": "R1",
+          "name": "지안",
+          "name_en": "Jian",
+          "pending": []
+        },
+        {
+          "start": 780,
+          "end": 1020,
+          "status": "uncovered",
+          "staff_id": null,
+          "ref": null,
+          "name": null,
+          "name_en": null,
+          "pending": [
+            {
+              "part_id": "P2-a",
+              "staff_id": "jian",
+              "name": "지안",
+              "name_en": "Jian",
+              "start": 780,
+              "end": 900,
+              "accepted": false,
+              "carried_from": null,
+              "confirmed": false,
+              "valid": true
+            },
+            {
+              "part_id": "P2-b",
+              "staff_id": "taeo",
+              "name": "태오",
+              "name_en": "Taeo",
+              "start": 900,
+              "end": 1020,
+              "accepted": false,
+              "carried_from": null,
+              "confirmed": false,
+              "valid": true
+            }
+          ]
+        },
+        {
+          "start": 1020,
+          "end": 1080,
+          "status": "original",
+          "staff_id": "taeo",
+          "ref": "R3",
+          "name": "태오",
+          "name_en": "Taeo",
+          "pending": []
+        }
+      ],
+      "proposal": {
+        "proposal_id": "P2",
+        "state": "open",
+        "parts": [
+          {
+            "part_id": "P2-a",
+            "staff_id": "jian",
+            "name": "지안",
+            "name_en": "Jian",
+            "start": 780,
+            "end": 900,
+            "accepted": false,
+            "carried_from": null,
+            "confirmed": false,
+            "valid": true
+          },
+          {
+            "part_id": "P2-b",
+            "staff_id": "taeo",
+            "name": "태오",
+            "name_en": "Taeo",
+            "start": 900,
+            "end": 1020,
+            "accepted": false,
+            "carried_from": null,
+            "confirmed": false,
+            "valid": true
+          }
+        ],
+        "cuts": [],
+        "closed_reason": null,
+        "created_ms": 1794039379217
+      },
+      "ai": {
+        "enabled": true,
+        "engine": "claude-code-cli",
+        "model_alias": "sonnet",
+        "status": "ok",
+        "reason": null,
+        "seconds": 3.52,
+        "at": 1794039362
+      },
+      "outbox": {
+        "sent": 4
+      }
+    },
+    {
+      "actor": "seoyeon",
+      "body": "proposal",
+      "at": "2026-11-07T08:16:24.459105+00:00",
+      "seconds": 0.012,
+      "version": 4,
+      "gaps": [
+        [
+          780,
+          1020
+        ]
+      ],
+      "coverage": [
+        {
+          "start": 540,
+          "end": 780,
+          "status": "original",
+          "staff_id": "jian",
+          "ref": "R1",
+          "name": "지안",
+          "name_en": "Jian",
+          "pending": []
+        },
+        {
+          "start": 780,
+          "end": 1020,
+          "status": "uncovered",
+          "staff_id": null,
+          "ref": null,
+          "name": null,
+          "name_en": null,
+          "pending": [
+            {
+              "part_id": "P2-a",
+              "staff_id": "jian",
+              "name": "지안",
+              "name_en": "Jian",
+              "start": 780,
+              "end": 900,
+              "accepted": false,
+              "carried_from": null,
+              "confirmed": false,
+              "valid": true
+            },
+            {
+              "part_id": "P2-b",
+              "staff_id": "taeo",
+              "name": "태오",
+              "name_en": "Taeo",
+              "start": 900,
+              "end": 1020,
+              "accepted": false,
+              "carried_from": null,
+              "confirmed": false,
+              "valid": true
+            }
+          ]
+        },
+        {
+          "start": 1020,
+          "end": 1080,
+          "status": "original",
+          "staff_id": "taeo",
+          "ref": "R3",
+          "name": "태오",
+          "name_en": "Taeo",
+          "pending": []
+        }
+      ],
+      "proposal": {
+        "proposal_id": "P2",
+        "state": "open",
+        "parts": [
+          {
+            "part_id": "P2-a",
+            "staff_id": "jian",
+            "name": "지안",
+            "name_en": "Jian",
+            "start": 780,
+            "end": 900,
+            "accepted": false,
+            "carried_from": null,
+            "confirmed": false,
+            "valid": true
+          },
+          {
+            "part_id": "P2-b",
+            "staff_id": "taeo",
+            "name": "태오",
+            "name_en": "Taeo",
+            "start": 900,
+            "end": 1020,
+            "accepted": false,
+            "carried_from": null,
+            "confirmed": false,
+            "valid": true
+          }
+        ],
+        "cuts": [],
+        "closed_reason": null,
+        "created_ms": 1794039379217
+      },
+      "ai": {
+        "enabled": true,
+        "engine": "claude-code-cli",
+        "model_alias": "sonnet",
+        "status": "ok",
+        "reason": null,
+        "seconds": 3.52,
+        "at": 1794039362
+      },
+      "outbox": {
+        "sent": 4
+      }
+    },
+    {
+      "actor": "jian",
+      "body": "accept P2-a",
+      "at": "2026-11-07T08:16:29.682321+00:00",
+      "seconds": 0.219,
+      "version": 5,
+      "gaps": [
+        [
+          780,
+          1020
+        ]
+      ],
+      "coverage": [
+        {
+          "start": 540,
+          "end": 780,
+          "status": "original",
+          "staff_id": "jian",
+          "ref": "R1",
+          "name": "지안",
+          "name_en": "Jian",
+          "pending": []
+        },
+        {
+          "start": 780,
+          "end": 1020,
+          "status": "uncovered",
+          "staff_id": null,
+          "ref": null,
+          "name": null,
+          "name_en": null,
+          "pending": [
+            {
+              "part_id": "P2-a",
+              "staff_id": "jian",
+              "name": "지안",
+              "name_en": "Jian",
+              "start": 780,
+              "end": 900,
+              "accepted": true,
+              "carried_from": null,
+              "confirmed": false,
+              "valid": true
+            },
+            {
+              "part_id": "P2-b",
+              "staff_id": "taeo",
+              "name": "태오",
+              "name_en": "Taeo",
+              "start": 900,
+              "end": 1020,
+              "accepted": false,
+              "carried_from": null,
+              "confirmed": false,
+              "valid": true
+            }
+          ]
+        },
+        {
+          "start": 1020,
+          "end": 1080,
+          "status": "original",
+          "staff_id": "taeo",
+          "ref": "R3",
+          "name": "태오",
+          "name_en": "Taeo",
+          "pending": []
+        }
+      ],
+      "proposal": {
+        "proposal_id": "P2",
+        "state": "open",
+        "parts": [
+          {
+            "part_id": "P2-a",
+            "staff_id": "jian",
+            "name": "지안",
+            "name_en": "Jian",
+            "start": 780,
+            "end": 900,
+            "accepted": true,
+            "carried_from": null,
+            "confirmed": false,
+            "valid": true
+          },
+          {
+            "part_id": "P2-b",
+            "staff_id": "taeo",
+            "name": "태오",
+            "name_en": "Taeo",
+            "start": 900,
+            "end": 1020,
+            "accepted": false,
+            "carried_from": null,
+            "confirmed": false,
+            "valid": true
+          }
+        ],
+        "cuts": [],
+        "closed_reason": null,
+        "created_ms": 1794039379217
+      },
+      "ai": {
+        "enabled": true,
+        "engine": "claude-code-cli",
+        "model_alias": "sonnet",
+        "status": "ok",
+        "reason": null,
+        "seconds": 3.52,
+        "at": 1794039362
+      },
+      "outbox": {
+        "sent": 6
+      }
+    },
+    {
+      "actor": "taeo",
+      "body": "accept P2-b",
+      "at": "2026-11-07T08:16:34.907541+00:00",
+      "seconds": 0.218,
+      "version": 6,
+      "gaps": [
+        [
+          780,
+          1020
+        ]
+      ],
+      "coverage": [
+        {
+          "start": 540,
+          "end": 780,
+          "status": "original",
+          "staff_id": "jian",
+          "ref": "R1",
+          "name": "지안",
+          "name_en": "Jian",
+          "pending": []
+        },
+        {
+          "start": 780,
+          "end": 1020,
+          "status": "uncovered",
+          "staff_id": null,
+          "ref": null,
+          "name": null,
+          "name_en": null,
+          "pending": [
+            {
+              "part_id": "P2-a",
+              "staff_id": "jian",
+              "name": "지안",
+              "name_en": "Jian",
+              "start": 780,
+              "end": 900,
+              "accepted": true,
+              "carried_from": null,
+              "confirmed": false,
+              "valid": true
+            },
+            {
+              "part_id": "P2-b",
+              "staff_id": "taeo",
+              "name": "태오",
+              "name_en": "Taeo",
+              "start": 900,
+              "end": 1020,
+              "accepted": true,
+              "carried_from": null,
+              "confirmed": false,
+              "valid": true
+            }
+          ]
+        },
+        {
+          "start": 1020,
+          "end": 1080,
+          "status": "original",
+          "staff_id": "taeo",
+          "ref": "R3",
+          "name": "태오",
+          "name_en": "Taeo",
+          "pending": []
+        }
+      ],
+      "proposal": {
+        "proposal_id": "P2",
+        "state": "open",
+        "parts": [
+          {
+            "part_id": "P2-a",
+            "staff_id": "jian",
+            "name": "지안",
+            "name_en": "Jian",
+            "start": 780,
+            "end": 900,
+            "accepted": true,
+            "carried_from": null,
+            "confirmed": false,
+            "valid": true
+          },
+          {
+            "part_id": "P2-b",
+            "staff_id": "taeo",
+            "name": "태오",
+            "name_en": "Taeo",
+            "start": 900,
+            "end": 1020,
+            "accepted": true,
+            "carried_from": null,
+            "confirmed": false,
+            "valid": true
+          }
+        ],
+        "cuts": [],
+        "closed_reason": null,
+        "created_ms": 1794039379217
+      },
+      "ai": {
+        "enabled": true,
+        "engine": "claude-code-cli",
+        "model_alias": "sonnet",
+        "status": "ok",
+        "reason": null,
+        "seconds": 3.52,
+        "at": 1794039362
+      },
+      "outbox": {
+        "sent": 7
+      }
+    },
+    {
+      "actor": "seoyeon",
+      "body": "confirm P2",
+      "at": "2026-11-07T08:16:40.150339+00:00",
+      "seconds": 0.232,
+      "version": 7,
+      "gaps": [],
+      "coverage": [
+        {
+          "start": 540,
+          "end": 780,
+          "status": "original",
+          "staff_id": "jian",
+          "ref": "R1",
+          "name": "지안",
+          "name_en": "Jian",
+          "pending": []
+        },
+        {
+          "start": 780,
+          "end": 900,
+          "status": "confirmed",
+          "staff_id": "jian",
+          "ref": "P2-a",
+          "name": "지안",
+          "name_en": "Jian",
+          "pending": []
+        },
+        {
+          "start": 900,
+          "end": 1020,
+          "status": "confirmed",
+          "staff_id": "taeo",
+          "ref": "P2-b",
+          "name": "태오",
+          "name_en": "Taeo",
+          "pending": []
+        },
+        {
+          "start": 1020,
+          "end": 1080,
+          "status": "original",
+          "staff_id": "taeo",
+          "ref": "R3",
+          "name": "태오",
+          "name_en": "Taeo",
+          "pending": []
+        }
+      ],
+      "proposal": null,
+      "ai": {
+        "enabled": true,
+        "engine": "claude-code-cli",
+        "model_alias": "sonnet",
+        "status": "ok",
+        "reason": null,
+        "seconds": 3.52,
+        "at": 1794039362
+      },
+      "outbox": {
+        "sent": 8
+      }
+    },
+    {
+      "actor": "jian",
+      "body": "unavailable 2026-11-09 13:00-15:00",
+      "at": "2026-11-07T08:16:55.576034+00:00",
+      "seconds": 0.424,
+      "version": 8,
+      "gaps": [
+        [
+          780,
+          900
+        ]
+      ],
+      "coverage": [
+        {
+          "start": 540,
+          "end": 780,
+          "status": "original",
+          "staff_id": "jian",
+          "ref": "R1",
+          "name": "지안",
+          "name_en": "Jian",
+          "pending": []
+        },
+        {
+          "start": 780,
+          "end": 900,
+          "status": "uncovered",
+          "staff_id": null,
+          "ref": null,
+          "name": null,
+          "name_en": null,
+          "pending": []
+        },
+        {
+          "start": 900,
+          "end": 1020,
+          "status": "confirmed",
+          "staff_id": "taeo",
+          "ref": "P2-b",
+          "name": "태오",
+          "name_en": "Taeo",
+          "pending": []
+        },
+        {
+          "start": 1020,
+          "end": 1080,
+          "status": "original",
+          "staff_id": "taeo",
+          "ref": "R3",
+          "name": "태오",
+          "name_en": "Taeo",
+          "pending": []
+        }
+      ],
+      "proposal": null,
+      "ai": {
+        "enabled": true,
+        "engine": "claude-code-cli",
+        "model_alias": "sonnet",
+        "status": "ok",
+        "reason": null,
+        "seconds": 3.52,
+        "at": 1794039362
+      },
+      "outbox": {
+        "sent": 9
+      }
+    },
+    {
+      "actor": "seoyeon",
+      "body": "confirm P2",
+      "at": "2026-11-07T08:17:03.598389+00:00",
+      "seconds": 0.013,
+      "version": 8,
+      "gaps": [
+        [
+          780,
+          900
+        ]
+      ],
+      "coverage": [
+        {
+          "start": 540,
+          "end": 780,
+          "status": "original",
+          "staff_id": "jian",
+          "ref": "R1",
+          "name": "지안",
+          "name_en": "Jian",
+          "pending": []
+        },
+        {
+          "start": 780,
+          "end": 900,
+          "status": "uncovered",
+          "staff_id": null,
+          "ref": null,
+          "name": null,
+          "name_en": null,
+          "pending": []
+        },
+        {
+          "start": 900,
+          "end": 1020,
+          "status": "confirmed",
+          "staff_id": "taeo",
+          "ref": "P2-b",
+          "name": "태오",
+          "name_en": "Taeo",
+          "pending": []
+        },
+        {
+          "start": 1020,
+          "end": 1080,
+          "status": "original",
+          "staff_id": "taeo",
+          "ref": "R3",
+          "name": "태오",
+          "name_en": "Taeo",
+          "pending": []
+        }
+      ],
+      "proposal": null,
+      "ai": {
+        "enabled": true,
+        "engine": "claude-code-cli",
+        "model_alias": "sonnet",
+        "status": "ok",
+        "reason": null,
+        "seconds": 3.52,
+        "at": 1794039362
+      },
+      "outbox": {
+        "sent": 9
+      }
+    },
+    {
+      "actor": "seoyeon",
+      "body": "export",
+      "at": "2026-11-07T08:17:09.824205+00:00",
+      "seconds": 0.222,
+      "version": 8,
+      "gaps": [
+        [
+          780,
+          900
+        ]
+      ],
+      "coverage": [
+        {
+          "start": 540,
+          "end": 780,
+          "status": "original",
+          "staff_id": "jian",
+          "ref": "R1",
+          "name": "지안",
+          "name_en": "Jian",
+          "pending": []
+        },
+        {
+          "start": 780,
+          "end": 900,
+          "status": "uncovered",
+          "staff_id": null,
+          "ref": null,
+          "name": null,
+          "name_en": null,
+          "pending": []
+        },
+        {
+          "start": 900,
+          "end": 1020,
+          "status": "confirmed",
+          "staff_id": "taeo",
+          "ref": "P2-b",
+          "name": "태오",
+          "name_en": "Taeo",
+          "pending": []
+        },
+        {
+          "start": 1020,
+          "end": 1080,
+          "status": "original",
+          "staff_id": "taeo",
+          "ref": "R3",
+          "name": "태오",
+          "name_en": "Taeo",
+          "pending": []
+        }
+      ],
+      "proposal": null,
+      "ai": {
+        "enabled": true,
+        "engine": "claude-code-cli",
+        "model_alias": "sonnet",
+        "status": "ok",
+        "reason": null,
+        "seconds": 3.52,
+        "at": 1794039362
+      },
+      "outbox": {
+        "sent": 12
+      }
+    }
+  ],
+  "final_version": 8,
+  "final_gaps": [
+    [
+      780,
+      900
+    ]
+  ],
+  "csv_download_http": 200,
+  "ics_events": 3,
+  "ics_uncovered_excluded": true,
+  "public_upload": false,
+  "submitted": false
+}

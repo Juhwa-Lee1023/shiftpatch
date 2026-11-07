@@ -1,0 +1,112 @@
+"""Exports from one frozen snapshot. The version and every row are read in a
+single read transaction, written to a temp file, fsynced and renamed into
+place. A failure here never touches domain state."""
+from __future__ import annotations
+
+import csv
+import hashlib
+import io
+import os
+import re
+import time
+import uuid
+from pathlib import Path
+
+from . import engine
+from . import intervals as iv
+
+STATUS_KO = {"original": "원 근무", "confirmed": "대체 확정", "uncovered": "미해결", "conflict": "중복 확인 필요"}
+FORMULA_START = ("=", "+", "-", "@", "\t", "\r")
+
+
+def room_dir(room_id: str) -> str:
+    return re.sub(r"[^A-Za-z0-9_-]", "_", room_id)
+
+
+def neutralize(cell) -> str:
+    s = "" if cell is None else str(cell)
+    return "'" + s if s.startswith(FORMULA_START) else s
+
+
+def take_snapshot(store, room_id):
+    with store.snapshot() as c:
+        rm = dict(engine.room(c, room_id))
+        cov = engine.coverage(c, room_id)
+        staff = engine.staff_rows(c, room_id)
+        names = {k: (v["display_name"], v["display_name_en"]) for k, v in staff.items()}
+    return {"room": rm, "version": rm["version"], "coverage": cov, "names": names}
+
+
+def render_csv(snap, generated_iso):
+    rm = snap["room"]
+    buf = io.StringIO()
+    w = csv.writer(buf, lineterminator="\r\n")
+    w.writerow(["date", "duty", "start", "end", "assignee", "status", "status_ko", "version", "generated_at"])
+    for sg in snap["coverage"]:
+        name = snap["names"].get(sg["staff_id"], ("", ""))[0] if sg["staff_id"] else ""
+        w.writerow([neutralize(x) for x in (rm["date"], rm["duty"], iv.fmt(sg["start"]), iv.fmt(sg["end"]), name,
+                                            sg["status"], STATUS_KO.get(sg["status"], sg["status"]), snap["version"],
+                                            generated_iso)])
+    return buf.getvalue().encode("utf-8-sig")
+
+
+def _ics_escape(s: str) -> str:
+    return s.replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,").replace("\n", "\\n")
+
+
+def render_ics(snap, generated_ms):
+    """Confirmed holdings only (original + confirmed replacements). Gaps and
+    pending proposals are left out on purpose. No sync, a static file."""
+    rm = snap["room"]
+    stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime(generated_ms / 1000))
+    lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//ShiftPatch//local snapshot//KO", "CALSCALE:GREGORIAN",
+             f"X-WR-CALNAME:{_ics_escape('ShiftPatch ' + rm['date'] + ' v' + str(snap['version']))}"]
+    for sg in snap["coverage"]:
+        if sg["status"] not in ("original", "confirmed"):
+            continue
+        name = snap["names"].get(sg["staff_id"], ("?", "?"))[0]
+        d = rm["date"].replace("-", "")
+        lines += ["BEGIN:VEVENT",
+                  f"UID:{rm['room_id']}-v{snap['version']}-{sg['start']}-{sg['staff_id']}@shiftpatch.local",
+                  f"DTSTAMP:{stamp}",
+                  f"DTSTART;TZID={rm['timezone']}:{d}T{sg['start'] // 60:02d}{sg['start'] % 60:02d}00",
+                  f"DTEND;TZID={rm['timezone']}:{d}T{sg['end'] // 60:02d}{sg['end'] % 60:02d}00",
+                  f"SUMMARY:{_ics_escape(name + ' · ' + rm['duty'])}",
+                  f"DESCRIPTION:{_ics_escape(STATUS_KO[sg['status']] + ' · snapshot v' + str(snap['version']))}",
+                  "END:VEVENT"]
+    lines.append("END:VCALENDAR")
+    return ("\r\n".join(lines) + "\r\n").encode("utf-8")
+
+
+def export(store, room_id, kind: str, out_dir: str | Path, now_ms: int | None = None):
+    now_ms = now_ms or int(time.time() * 1000)
+    snap = take_snapshot(store, room_id)
+    out_dir = Path(out_dir) / room_dir(room_id)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    export_id = uuid.uuid4().hex[:12]
+    iso = iv.local_iso(now_ms, snap["room"]["timezone"])
+    data = render_csv(snap, iso) if kind == "csv" else render_ics(snap, now_ms)
+    name = f"coverage-{snap['room']['date']}-v{snap['version']}-{export_id}.{kind}"
+    tmp = out_dir / (name + ".tmp")
+    try:
+        store.hit("export_write")
+        with open(tmp, "wb") as f:
+            f.write(data)
+            f.flush()
+            os.fsync(f.fileno())
+        store.hit("export_publish")
+        os.replace(tmp, out_dir / name)
+    except Exception as e:
+        tmp.unlink(missing_ok=True)
+        with store.tx() as c:
+            c.execute("INSERT INTO exports VALUES (?,?,?,?,NULL,NULL,NULL,'failed',?,?)",
+                      (export_id, room_id, kind, snap["version"], type(e).__name__, now_ms))
+        return {"ok": False, "export_id": export_id, "version": snap["version"], "error": type(e).__name__}
+    digest = hashlib.sha256(data).hexdigest()
+    with store.tx() as c:
+        c.execute("INSERT INTO exports VALUES (?,?,?,?,?,?,?,'published',NULL,?)",
+                  (export_id, room_id, kind, snap["version"], name, digest, len(snap["coverage"]), now_ms))
+        engine.log(c, room_id, snap["version"], now_ms, "exported", None, fmt=kind, snapshot_version=snap["version"],
+                   file=name)
+    return {"ok": True, "export_id": export_id, "version": snap["version"], "file": name, "sha256": digest,
+            "path": str(out_dir / name)}

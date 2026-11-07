@@ -1,0 +1,77 @@
+{
+  "updated_at": "2026-11-07T08:23:18.571747+00:00",
+  "phase": "Final source independently verified against local Switch and native chat UI",
+  "server": {
+    "url": "http://127.0.0.1:8766/",
+    "scope": "localhost only",
+    "real_switch_configured": true,
+    "qa_data": "separate third synthetic fixture; earlier databases retained",
+    "auto_start": false
+  },
+  "tests": {
+    "unit_integration": {
+      "command": "python3 -m unittest discover -s tests",
+      "exit": 0,
+      "result": "89 OK",
+      "seconds": 24.1,
+      "log": null,
+      "note": "root review pass 17:08 KST; earlier 84-test log is qa/unittest.log"
+    },
+    "browser_e2e": {
+      "command": "node e2e/run.mjs",
+      "exit": 0,
+      "result": "10/10 steps, 0 console errors",
+      "file": "qa/e2e-result.json",
+      "note": "initial build only; not re-run after the R03 wording change"
+    },
+    "browser_ai_trace": {
+      "command": "node e2e/ai_trace.mjs",
+      "exit": 0,
+      "result": "5/5",
+      "file": "qa/e2e-ai-result.json",
+      "note": "initial build only"
+    },
+    "ai_live": {
+      "command": "python3 qa/ai_live_check.py",
+      "exit": 0,
+      "result": "7/7",
+      "file": "qa/ai-live.json",
+      "note": "initial build only"
+    }
+  },
+  "switch_live": {
+    "status": "PASS_LOCAL_SYNTHETIC_TEAM",
+    "version": "0.31.0",
+    "main_flow": "qa/final-live-evidence.json",
+    "human_user_study": false
+  },
+  "docs": [
+    "README.md",
+    "docs/KNOWN_ISSUES.md",
+    "qa/TEST_REPORT.md",
+    "qa/LIVE_SWITCH_REPORT.md",
+    "qa/root-review-response.md",
+    "submission/STORY.md",
+    "submission/DEMO_SCRIPT.md",
+    "LICENSE (MIT default, entrant to confirm)"
+  ],
+  "not_done": [
+    "public GitHub publication",
+    "public/unlisted video upload",
+    "real staff trial",
+    "managed/cloud Switch",
+    "manual final submission by entrant"
+  ],
+  "root_tests": {
+    "result": "89 OK",
+    "exit": 0,
+    "log": "qa/root-final-unit.log"
+  },
+  "actual_browser": {
+    "ocr_import": "PASS_LOCAL_FIXTURE",
+    "native_chat_realtime": "PASS_AT_CONFIGURED_LOCALHOST_SITEURL",
+    "csv_download": "PASS_AFTER_SOURCE_RELOAD",
+    "ics_generated_and_parsed": "PASS",
+    "automated_final_submission": false
+  }
+}

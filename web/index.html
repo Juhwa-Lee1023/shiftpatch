@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="shiftpatch-token" content="__TOKEN__">
+<title>ShiftPatch</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span class="mark" aria-hidden="true"></span>ShiftPatch</div>
+  <nav aria-label="main">
+    <a href="#/board" data-nav="board" data-i18n="nav_board">담당 현황</a>
+    <a href="#/room" data-nav="room" data-i18n="nav_room">시연 방</a>
+    <a href="#/import" data-nav="import" data-i18n="nav_import">근무표 가져오기</a>
+    <a href="#/connect" data-nav="connect" data-i18n="nav_connect">연결과 기록 방식</a>
+  </nav>
+  <div class="lang" role="group" aria-label="language">
+    <button type="button" data-lang="ko">한국어</button><button type="button" data-lang="en">English</button>
+  </div>
+</header>
+<main id="view" tabindex="-1"></main>
+<footer class="foot" data-i18n="footer">합성 예시 데이터 · 이 Mac(127.0.0.1)에서만 열리는 로컬 화면</footer>
+<script src="/static/app.js"></script>
+</body>
+</html>

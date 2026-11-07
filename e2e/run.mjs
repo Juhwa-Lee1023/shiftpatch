@@ -1,0 +1,190 @@
+// Browser end-to-end: starts its own ShiftPatch server (fresh temp data,
+// AI off for determinism), drives system Chrome through the real UI, saves
+// screenshots to docs/screenshots and a result file to qa/e2e-result.json.
+// Usage: node e2e/run.mjs
+import { chromium } from "playwright";
+import { spawn } from "node:child_process";
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const APP = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const SHOTS = path.join(APP, "docs", "screenshots");
+mkdirSync(SHOTS, { recursive: true });
+const PORT = 8790 + Math.floor(Math.random() * 100);
+const DATA = mkdtempSync(path.join(tmpdir(), "shiftpatch-e2e-"));
+const BASE = `http://127.0.0.1:${PORT}`;
+const steps = [];
+const t0 = Date.now();
+
+const server = spawn("python3", [path.join(APP, "run.py"), "--port", String(PORT), "--data", DATA,
+  "--switch-config", path.join(DATA, "none.json")], { env: { ...process.env, SHIFTPATCH_AI: "off" }, stdio: ["ignore", "pipe", "pipe"] });
+await new Promise((res, rej) => {
+  const to = setTimeout(() => rej(new Error("server did not start")), 15000);
+  server.stdout.on("data", (d) => { if (String(d).includes("ShiftPatch on")) { clearTimeout(to); res(); } });
+});
+
+const browser = await chromium.launch({ channel: "chrome", headless: true });
+const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, acceptDownloads: true });
+const page = await ctx.newPage();
+const consoleErrors = [];
+page.on("pageerror", (e) => consoleErrors.push(String(e)));
+page.on("console", (m) => { if (m.type() === "error") consoleErrors.push(m.text()); });
+
+async function step(name, fn) {
+  const s = Date.now();
+  try { await fn(); steps.push({ name, ok: true, ms: Date.now() - s }); }
+  catch (e) { steps.push({ name, ok: false, ms: Date.now() - s, error: String(e.message).split("\n")[0] }); throw e; }
+}
+const shot = (name, full = true) => page.screenshot({ path: path.join(SHOTS, name), fullPage: full });
+async function send(actorLabel, text) {
+  await page.locator(".actors").getByRole("button", { name: new RegExp("^" + actorLabel) }).click();
+  await page.fill("#msg", text);
+  const n = await page.locator(".bubble.agent").count();
+  await page.getByRole("button", { name: /^보내기$|^Send$/ }).click();
+  await page.waitForFunction((k) => document.querySelectorAll(".bubble.agent").length > k, n, { timeout: 15000 });
+  return (await page.locator(".bubble.agent .tx").last().innerText());
+}
+const expectIn = (hay, needle, what) => { if (!hay.includes(needle)) throw new Error(`${what}: expected "${needle}" in "${hay.slice(0, 160)}"`); };
+
+let exitCode = 0;
+try {
+  await step("landing renders (ko + en)", async () => {
+    await page.goto(BASE + "/");
+    await page.getByRole("heading", { name: /13–17시 담당자가/ }).waitFor();
+    await shot("01-landing-ko.png");
+    await page.getByRole("button", { name: "English" }).click();
+    await page.getByRole("heading", { name: /1-to-5 shift/ }).waitFor();
+    await shot("01b-landing-en.png");
+    await page.getByRole("button", { name: "한국어" }).click();
+  });
+
+  await step("OCR: ambiguous synthetic image is flagged and import stays blocked", async () => {
+    await page.goto(BASE + "/#/import");
+    await page.setInputFiles("#imgfile", path.join(APP, "fixtures", "ocr", "ambiguous.png"));
+    await page.locator(".grid input").first().waitFor({ timeout: 90000 });
+    const checks = await page.locator(".checks").innerText();
+    expectIn(checks, "연도", "missing-year warning");
+    expectIn(checks, "오전·오후", "am/pm warning");
+    if (!(await page.getByRole("button", { name: "초기 근무표 등록" }).isDisabled())) throw new Error("approve should be disabled");
+    await shot("02-ocr-review-ambiguous.png");
+    await page.getByRole("button", { name: "버리기" }).click();
+  });
+
+  await step("OCR: unsupported layout falls back to CSV/manual", async () => {
+    await page.setInputFiles("#imgfile", path.join(APP, "fixtures", "ocr", "unsupported.png"));
+    await page.getByText("이 표 모양은 아직 읽지 못합니다").waitFor({ timeout: 90000 });
+    await page.getByRole("button", { name: "버리기" }).click();
+  });
+
+  await step("OCR: clear image → confirm account links → explicit approval → board", async () => {
+    await page.setInputFiles("#imgfile", path.join(APP, "fixtures", "ocr", "clear.png"));
+    await page.locator(".grid input").first().waitFor({ timeout: 90000 });
+    const vals = await page.locator(".grid input").evaluateAll((ns) => ns.map((n) => n.value));
+    if (vals.join("|") !== "지안|2026-11-09|09:00|13:00|일반 문의|민수|2026-11-09|13:00|17:00|일반 문의|태오|2026-11-09|17:00|18:00|일반 문의")
+      throw new Error("OCR values differ: " + vals.join("|"));
+    expectIn(await page.locator(".checks").innerText(), "계정 연결을 확인하지 않았습니다", "mapping must be confirmed");
+    for (const cb of await page.locator(".maprow input[type=checkbox]").all()) { await cb.check(); await page.waitForTimeout(150); }
+    await page.locator(".grid input").first().waitFor();
+    await shot("03-ocr-review-clear.png");
+    await page.getByRole("button", { name: "초기 근무표 등록" }).click();
+    await page.getByRole("alert").filter({ hasText: "확인했습니다" }).waitFor();   // blocked until the box is ticked
+    await page.locator("#approve").check();
+    await page.getByRole("button", { name: "초기 근무표 등록" }).click();
+    await page.getByText("빈 시간이 없습니다").waitFor();
+    await shot("04-board-initial.png");
+  });
+
+  await step("chat: tentative inability asks first, then yes opens 13–17", async () => {
+    await page.goto(BASE + "/#/room");
+    await page.locator("#msg").waitFor();
+    let r = await send("민수", "@ShiftPatch 내일 13~17시 고객문의 응대 못 할 것 같아요");
+    expectIn(r, "'불가'로 기록할까요", "clarification");
+    r = await send("민수", "@ShiftPatch 네");
+    expectIn(r, "13:00–17:00이 다시 비었습니다", "gap opened");
+  });
+
+  await step("chat: availability, proposal, self acceptance, proxy refused, manager confirms", async () => {
+    let r = await send("지안", "@ShiftPatch 점심 먹고 두 시간은 돼요");
+    expectIn(r, "AI 해석이 지금 꺼져", "AI-off notice (no fake AI)");
+    r = await send("지안", "@ShiftPatch 가능 13-15");
+    expectIn(r, "가능으로 기록했습니다", "availability");
+    r = await send("태오", "@ShiftPatch 가능 2026-11-09 15:00-17:00");
+    const pid = (r.match(/새 대체안 (P\d+)/) || [])[1];
+    if (!pid) throw new Error("no proposal id in: " + r);
+    r = await send("서연", `@ShiftPatch 수락 ${pid}-a`);
+    expectIn(r, "본인에게 제안된 구간만", "proxy acceptance refused");
+    r = await send("지안", `@ShiftPatch 수락 ${pid}-a`);
+    expectIn(r, "남은 수락: 태오", "waiting for Taeo");
+    r = await send("서연", `@ShiftPatch 확정 ${pid}`);
+    expectIn(r, "아직 수락하지 않은 구간", "confirm blocked until all accept");
+    r = await send("태오", `@ShiftPatch 수락 ${pid}-b`);
+    expectIn(r, "필요한 수락이 모두 모였습니다", "all accepted");
+    r = await send("서연", `@ShiftPatch 확정 ${pid}`);
+    expectIn(r, "빈 시간이 없습니다", "confirmed");
+    await shot("05-room-after-confirm.png", false);
+    globalThis.PID = pid;
+  });
+
+  await step("board + CSV show the same confirmed coverage", async () => {
+    let r = await send("서연", "@ShiftPatch 내보내기");
+    await page.waitForFunction(() => [...document.querySelectorAll(".bubble.agent .tx")].some((n) => n.innerText.includes("파일을 만들었습니다")), null, { timeout: 15000 });
+    await page.goto(BASE + "/#/board");
+    await page.locator(".banner.clear").waitFor();
+    await shot("06-board-confirmed.png");
+    const table = await page.locator("table tbody tr").evaluateAll((rs) => rs.map((r) => [...r.children].map((c) => c.innerText.trim()).join("|")));
+    const [dl] = await Promise.all([page.waitForEvent("download"), page.locator(".exports a").first().click()]);
+    const csv = readFileSync(await dl.path(), "utf8").replace(/^﻿/, "").trim().split(/\r?\n/).slice(1).map((l) => l.split(","));
+    const fromCsv = csv.map((c) => `${c[2]}–${c[3]}|${c[4] || "—"}|${c[6]}`);
+    if (JSON.stringify(fromCsv) !== JSON.stringify(table)) throw new Error(`CSV ${JSON.stringify(fromCsv)} != board ${JSON.stringify(table)}`);
+    writeFileSync(path.join(APP, "qa", "e2e-download-sample.csv"), readFileSync(await dl.path()));
+  });
+
+  await step("after confirmation Jian drops 13–15: only that interval reopens, old plan cannot re-confirm", async () => {
+    await page.goto(BASE + "/#/room");
+    await page.locator("#msg").waitFor();
+    let r = await send("지안", "@ShiftPatch 불가 2026-11-09 13:00-15:00");
+    expectIn(r, "13:00–15:00이 다시 비었습니다", "reopened");
+    expectIn(r, "태오님의 15:00–17:00은 유지됩니다", "Taeo kept");
+    r = await send("서연", `@ShiftPatch 확정 ${globalThis.PID}`);
+    expectIn(r, "다시 확정할 수 없습니다", "old plan refused");
+    await shot("07-room-after-drop.png", false);
+    await page.goto(BASE + "/#/board");
+    await page.locator(".banner.gap").getByText("13:00–15:00 담당자가 없습니다").waitFor();
+    const rows = await page.locator("table tbody tr").evaluateAll((rs) => rs.map((r) => r.innerText.replace(/\s+/g, " ").trim()));
+    const want = ["09:00–13:00 지안 원 근무", "13:00–15:00 — 미해결", "15:00–17:00 태오 대체 확정", "17:00–18:00 태오 원 근무"];
+    if (JSON.stringify(rows) !== JSON.stringify(want)) throw new Error("rows " + JSON.stringify(rows));
+    await shot("08-board-gap-reopened.png");
+    await page.getByRole("button", { name: "English" }).click();
+    await page.getByText("13:00–15:00 has nobody assigned").waitFor();
+    await shot("08b-board-gap-reopened-en.png");
+    await page.getByRole("button", { name: "한국어" }).click();
+  });
+
+  await step("narrow viewport and connection page", async () => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(BASE + "/#/board");
+    await page.locator(".banner.gap").waitFor();
+    await shot("09-board-mobile.png", false);   // viewport only: full-page capture tiles at this width
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto(BASE + "/#/connect");
+    await page.getByText("막힘(BLOCKED)").waitFor();
+    await shot("10-connect-blocked.png");
+  });
+
+  await step("no browser console errors", async () => {
+    if (consoleErrors.length) throw new Error(consoleErrors.join(" | "));
+  });
+} catch (e) {
+  exitCode = 1;
+  await page.screenshot({ path: path.join(APP, "qa", "e2e-failure.png"), fullPage: true }).catch(() => {});
+} finally {
+  await browser.close();
+  server.kill("SIGTERM");
+}
+const result = { at: new Date().toISOString(), command: "node e2e/run.mjs", browser: "system Google Chrome via Playwright channel=chrome (headless)",
+  ai: "off (SHIFTPATCH_AI=off) for determinism", port: PORT, duration_ms: Date.now() - t0, exit_code: exitCode, steps, console_errors: consoleErrors };
+writeFileSync(path.join(APP, "qa", "e2e-result.json"), JSON.stringify(result, null, 2) + "\n");
+console.log(JSON.stringify({ exit_code: exitCode, passed: steps.filter((s) => s.ok).length, failed: steps.filter((s) => !s.ok) }, null, 1));
+process.exit(exitCode);

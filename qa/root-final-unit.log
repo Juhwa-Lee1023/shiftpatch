@@ -1,0 +1,133 @@
+test_d03_withdrawal_before_confirm_rejects_old_plan_keeps_others (test_domain.Domain.test_d03_withdrawal_before_confirm_rejects_old_plan_keeps_others) ... ok
+test_d05_widened_interval_needs_fresh_acceptance (test_domain.Domain.test_d05_widened_interval_needs_fresh_acceptance) ... ok
+test_d06_changed_facts_block_carry_forward (test_domain.Domain.test_d06_changed_facts_block_carry_forward) ... ok
+test_d07_d08_confirm_then_partial_inability (test_domain.Domain.test_d07_d08_confirm_then_partial_inability) ... ok
+test_d09_inability_before_confirm_rejects_old_confirm (test_domain.Domain.test_d09_inability_before_confirm_rejects_old_confirm) ... ok
+test_d10_d16_duplicate_confirm_and_duplicate_source (test_domain.Domain.test_d10_d16_duplicate_confirm_and_duplicate_source) ... ok
+test_d11_adjacent_intervals_allowed (test_domain.Domain.test_d11_adjacent_intervals_allowed) ... ok
+test_d12_candidate_clipped_to_gap_never_extended (test_domain.Domain.test_d12_candidate_clipped_to_gap_never_extended) ... ok
+test_d13_no_candidate_keeps_gap (test_domain.Domain.test_d13_no_candidate_keeps_gap) ... ok
+test_d14_partial_availability_leaves_remainder (test_domain.Domain.test_d14_partial_availability_leaves_remainder) ... ok
+test_d17_proxy_and_other_persons_part_rejected (test_domain.Domain.test_d17_proxy_and_other_persons_part_rejected) ... ok
+test_d20_revoke_before_confirm_only_that_acceptance (test_domain.Domain.test_d20_revoke_before_confirm_only_that_acceptance) ... ok
+test_d24_unknown_or_cross_room_reference (test_domain.Domain.test_d24_unknown_or_cross_room_reference) ... ok
+test_d25_reversed_and_overnight_ranges_not_saved (test_domain.Domain.test_d25_reversed_and_overnight_ranges_not_saved) ... ok
+test_d26_random_event_orders_keep_invariants (test_domain.Domain.test_d26_random_event_orders_keep_invariants) ... ok
+test_revoke_after_confirm_is_distinct_from_inability (test_domain.Domain.test_revoke_after_confirm_is_distinct_from_inability) ... ok
+test_revoked_consent_is_not_carried_into_a_new_proposal (test_domain.Domain.test_revoked_consent_is_not_carried_into_a_new_proposal) ... ok
+test_staff_cannot_confirm (test_domain.Domain.test_staff_cannot_confirm) ... ok
+test_wrong_date_rejected (test_domain.Domain.test_wrong_date_rejected) ... ok
+test_b01_csv_matches_board_and_version (test_export.Export.test_b01_csv_matches_board_and_version) ... ok
+test_b02_concurrent_confirm_cannot_mix_versions (test_export.Export.test_b02_concurrent_confirm_cannot_mix_versions) ... ok
+test_b03_failure_keeps_state_and_publishes_nothing (test_export.Export.test_b03_failure_keeps_state_and_publishes_nothing) ... ok
+test_b04_formula_cells_neutralised (test_export.Export.test_b04_formula_cells_neutralised) ... ok
+test_b06_previous_versions_kept_and_ics_confirmed_only (test_export.Export.test_b06_previous_versions_kept_and_ics_confirmed_only) ... ok
+test_export_failure_reply_through_chat (test_export.Export.test_export_failure_reply_through_chat) ... ok
+test_b05_wrong_host_rejected (test_http.Http.test_b05_wrong_host_rejected) ... GET /api/state
+/Users/juhwalee/.homebrew/Cellar/python@3.14/3.14.5/Frameworks/Python.framework/Versions/3.14/lib/python3.14/tempfile.py:484: ResourceWarning: Implicitly cleaning up <HTTPError 403: 'Forbidden'>
+  _warnings.warn(self.warn_message, ResourceWarning)
+ok
+test_demo_actor_must_be_synthetic (test_http.Http.test_demo_actor_must_be_synthetic) ... POST /api/roster/csv
+POST /api/roster/draft/2170f51b16/approve
+POST /api/demo/message
+ok
+test_demo_flow_and_export_download (test_http.Http.test_demo_flow_and_export_download) ... POST /api/roster/csv
+POST /api/roster/draft/c2ec4af1af/approve
+POST /api/demo/message
+POST /api/demo/message
+GET /api/state
+POST /api/demo/message
+POST /api/demo/message
+POST /api/export
+GET /exports/coverage-2026-11-09-v5-b45daddf47e9.csv
+GET /exports/../shiftpatch.db
+/Users/juhwalee/.homebrew/Cellar/python@3.14/3.14.5/Frameworks/Python.framework/Versions/3.14/lib/python3.14/tempfile.py:484: ResourceWarning: Implicitly cleaning up <HTTPError 404: 'Not Found'>
+  _warnings.warn(self.warn_message, ResourceWarning)
+GET /exports/not-recorded.csv
+GET /api/state
+ok
+test_import_needs_explicit_approval_over_http (test_http.Http.test_import_needs_explicit_approval_over_http) ... POST /api/roster/csv
+POST /api/roster/draft/708b728ef7/approve
+/Users/juhwalee/.homebrew/Cellar/python@3.14/3.14.5/Frameworks/Python.framework/Versions/3.14/lib/python3.14/tempfile.py:484: ResourceWarning: Implicitly cleaning up <HTTPError 409: 'Conflict'>
+  _warnings.warn(self.warn_message, ResourceWarning)
+POST /api/roster/draft/708b728ef7/approve
+POST /api/roster/draft/708b728ef7/approve
+GET /api/state
+ok
+test_index_injects_token_and_sets_csp (test_http.Http.test_index_injects_token_and_sets_csp) ... GET /
+ok
+test_unknown_room_404 (test_http.Http.test_unknown_room_404) ... GET /api/state
+ok
+test_upload_bounds_over_http (test_http.Http.test_upload_bounds_over_http) ... POST /api/roster/image
+/Users/juhwalee/.homebrew/Cellar/python@3.14/3.14.5/Frameworks/Python.framework/Versions/3.14/lib/python3.14/tempfile.py:484: ResourceWarning: Implicitly cleaning up <HTTPError 422: 'Unprocessable Content'>
+  _warnings.warn(self.warn_message, ResourceWarning)
+POST /api/roster/csv
+/Users/juhwalee/.homebrew/Cellar/python@3.14/3.14.5/Frameworks/Python.framework/Versions/3.14/lib/python3.14/tempfile.py:484: ResourceWarning: Implicitly cleaning up <HTTPError 400: 'Bad Request'>
+  _warnings.warn(self.warn_message, ResourceWarning)
+ok
+test_write_requires_token_and_same_origin (test_http.Http.test_write_requires_token_and_same_origin) ... POST /api/demo/reset
+POST /api/demo/reset
+ok
+test_d01_main_trace_only_affected_hours_reopen (test_main_trace.MainTrace.test_d01_main_trace_only_affected_hours_reopen) ... ok
+test_d02_acceptance_does_not_invalidate_proposal (test_main_trace.MainTrace.test_d02_acceptance_does_not_invalidate_proposal) ... ok
+test_unknown_message_says_ai_is_off (test_pipeline.AIUnavailable.test_unknown_message_says_ai_is_off) ... ok
+test_b08_message_text_not_on_disk (test_pipeline.Pipeline.test_b08_message_text_not_on_disk) ... ok
+test_c03_quote_forward_edit_bot (test_pipeline.Pipeline.test_c03_quote_forward_edit_bot) ... ok
+test_d15_failure_rolls_back_everything_then_retry_once (test_pipeline.Pipeline.test_d15_failure_rolls_back_everything_then_retry_once) ... ok
+test_d18_x1_context_bound_to_current_message_and_actor (test_pipeline.Pipeline.test_d18_x1_context_bound_to_current_message_and_actor) ... ok
+test_l03_ambiguous_hour_asks (test_pipeline.Pipeline.test_l03_ambiguous_hour_asks) ... ok
+test_l05_english_commands (test_pipeline.Pipeline.test_l05_english_commands) ... ok
+test_no_closes_pending_without_change (test_pipeline.Pipeline.test_no_closes_pending_without_change) ... ok
+test_pending_expires (test_pipeline.Pipeline.test_pending_expires) ... ok
+test_someone_elses_confirmation_cannot_be_answered (test_pipeline.Pipeline.test_someone_elses_confirmation_cannot_be_answered) ... ok
+test_unlinked_and_not_addressed (test_pipeline.Pipeline.test_unlinked_and_not_addressed) ... ok
+test_web_actor_cannot_reach_switch_room (test_pipeline.Pipeline.test_web_actor_cannot_reach_switch_room) ... ok
+test_x2_d19_availability_yes_is_never_acceptance (test_pipeline.Pipeline.test_x2_d19_availability_yes_is_never_acceptance) ... ok
+test_x3_tentative_inability_asks_first_rule_reader (test_pipeline.Pipeline.test_x3_tentative_inability_asks_first_rule_reader) ... ok
+test_x4_two_open_confirmations_need_a_number (test_pipeline.Pipeline.test_x4_two_open_confirmations_need_a_number) ... ok
+test_x5_changed_facts_reshow_instead_of_apply (test_pipeline.Pipeline.test_x5_changed_facts_reshow_instead_of_apply) ... ok
+test_x6_older_message_never_overwrites_newer (test_pipeline.Pipeline.test_x6_older_message_never_overwrites_newer) ... ok
+test_x7_future_and_stale_timestamps (test_pipeline.Pipeline.test_x7_future_and_stale_timestamps) ... ok
+test_x8_reply_failure_and_restart_send_without_rerunning_state (test_pipeline.Pipeline.test_x8_reply_failure_and_restart_send_without_rerunning_state) ... ok
+test_ai_cannot_point_at_someone_elses_part (test_pipeline.WithFakeAI.test_ai_cannot_point_at_someone_elses_part) ... ok
+test_ai_clarify_and_l04_injection (test_pipeline.WithFakeAI.test_ai_clarify_and_l04_injection) ... ok
+test_ai_proxy_claim_refused (test_pipeline.WithFakeAI.test_ai_proxy_claim_refused) ... ok
+test_ai_suggestion_needs_self_ack (test_pipeline.WithFakeAI.test_ai_suggestion_needs_self_ack) ... ok
+test_extract_unsupported_without_headers (test_roster_ocr.FileBounds.test_extract_unsupported_without_headers) ... ok
+test_pixel_bounds (test_roster_ocr.FileBounds.test_pixel_bounds) ... ok
+test_type_and_size (test_roster_ocr.FileBounds.test_type_and_size) ... ok
+test_ambiguous_flags_year_and_am_pm (test_roster_ocr.RealVision.test_ambiguous_flags_year_and_am_pm) ... ok
+test_clear_and_small_read_exactly_but_stay_unimported (test_roster_ocr.RealVision.test_clear_and_small_read_exactly_but_stay_unimported) ... ok
+test_private_temp_removed_on_discard (test_roster_ocr.RealVision.test_private_temp_removed_on_discard) ... ok
+test_unknown_name_and_collision (test_roster_ocr.RealVision.test_unknown_name_and_collision) ... ok
+test_unsupported_layout (test_roster_ocr.RealVision.test_unsupported_layout) ... ok
+test_csv_parse_bounds (test_roster_ocr.RosterImport.test_csv_parse_bounds) ... ok
+test_import_blocked_without_confirmed_mapping (test_roster_ocr.RosterImport.test_import_blocked_without_confirmed_mapping) ... ok
+test_import_blocked_without_manager_approval (test_roster_ocr.RosterImport.test_import_blocked_without_manager_approval) ... ok
+test_no_live_roster_overwrite_after_events_begin (test_roster_ocr.RosterImport.test_no_live_roster_overwrite_after_events_begin) ... ok
+test_roles_never_come_from_the_file (test_roster_ocr.RosterImport.test_roles_never_come_from_the_file) ... ok
+test_suggestion_is_not_confirmation (test_roster_ocr.RosterImport.test_suggestion_is_not_confirmation) ... ok
+test_two_names_one_account (test_roster_ocr.RosterImport.test_two_names_one_account) ... ok
+test_validation_flags (test_roster_ocr.RosterImport.test_validation_flags) ... ok
+test_addressed_message_changes_state_and_reply_is_posted (test_switch_contract.SwitchContract.test_addressed_message_changes_state_and_reply_is_posted) ... ok
+test_bad_key_stops (test_switch_contract.SwitchContract.test_bad_key_stops) ... ok
+test_gap_frame_moves_cursor_and_flags_next_reply (test_switch_contract.SwitchContract.test_gap_frame_moves_cursor_and_flags_next_reply) ... ok
+test_persistent_handler_failure_halts_before_later_sequences (test_switch_contract.SwitchContract.test_persistent_handler_failure_halts_before_later_sequences)
+R01: a later good message must not move the cursor past a failed one. ... ok
+test_probe_connect_and_pong_with_cursor (test_switch_contract.SwitchContract.test_probe_connect_and_pong_with_cursor) ... ok
+test_reconnect_resumes_from_cursor_with_generation_and_dedups_replay (test_switch_contract.SwitchContract.test_reconnect_resumes_from_cursor_with_generation_and_dedups_replay) ... ok
+test_restart_keeps_connection_id_and_cursor (test_switch_contract.SwitchContract.test_restart_keeps_connection_id_and_cursor) ... ok
+test_safeguards_unaddressed_unlinked_marker_self_other_room (test_switch_contract.SwitchContract.test_safeguards_unaddressed_unlinked_marker_self_other_room) ... ok
+test_status_never_contains_key (test_switch_contract.SwitchContract.test_status_never_contains_key) ... ok
+test_taken_over_is_final (test_switch_contract.SwitchContract.test_taken_over_is_final) ... ok
+test_board_link_replaces_room_and_keeps_fragment (test_switch_server.SwitchThroughApp.test_board_link_replaces_room_and_keeps_fragment) ... ok
+test_message_in_switch_room_round_trips (test_switch_server.SwitchThroughApp.test_message_in_switch_room_round_trips) ... ok
+test_status_reply_links_the_same_switch_room (test_switch_server.SwitchThroughApp.test_status_reply_links_the_same_switch_room)
+R02: the board link in a Switch reply must open that room, not local-demo. ... ok
+test_history_uses_particle_helper (test_web_text.KoreanParticle.test_history_uses_particle_helper) ... ok
+test_particle_follows_final_consonant (test_web_text.KoreanParticle.test_particle_follows_final_consonant) ... ok
+
+----------------------------------------------------------------------
+Ran 89 tests in 23.357s
+
+OK

@@ -1,0 +1,7 @@
+{
+  "base_url": "http://localhost:8000",
+  "agent_id": "<from manage.py register-agent>",
+  "api_key": "<written by manage.py register-agent; never commit>",
+  "room_id": "<the Switch room id>",
+  "agent_name": "shiftpatch"
+}
